@@ -27,7 +27,7 @@ Run Docker Desktop
 
 Open up your Terminal/Powershell to begin
 
-Your terminal should be in the same directory of the /observability folder in the repo.
+Your terminal should be in the same directory of the /stars-sandbox
 
 ---
 
