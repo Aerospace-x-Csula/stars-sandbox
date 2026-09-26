@@ -23,6 +23,12 @@ kubectl version --client
 helm version
 ```
 
+Run Docker Desktop
+
+Open up your Terminal/Powershell to begin
+
+Your terminal should be in the same directory of the /observability folder in the repo.
+
 ---
 
 ## 1. Start Minikube
