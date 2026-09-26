@@ -113,6 +113,8 @@ auth:
   ZO_ROOT_USER_PASSWORD: "your-private-password"
 ```
 
+Use the observability/values.example.yaml as a guide for your values.local.yaml
+
 ### Choose a strong password.
 
 At least one uppercase letter, one number, one punctuation.
