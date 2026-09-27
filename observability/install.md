@@ -153,14 +153,28 @@ git status
 
 From the root of the STARS repository, run:
 
+For Mac Users, use this command
+
 ```bash
-helm --namespace stars -f observability/values.local.yaml install openobserve openobserve/openobserve-standalone
+helm --namespace stars -f ~/stars-sandbox/observability/values.local.yaml install openobserve openobserve/openobserve-standalone
+```
+
+For Windows Users,
+
+```bash
+helm --namespace stars -f <Relative directory of values.local.yaml> install openobserve openobserve/openobserve-standalone
+```
+
+For example if Window Users are at /observability, your command should look like this:
+
+```bash
+helm --namespace stars -f <values.local.yaml> install openobserve openobserve/openobserve-standalone
 ```
 
 What the command means:
 
 - `--namespace stars` installs the Kubernetes resources into the `stars` namespace.
-- `-f observability/values.local.yaml` loads your private OpenObserve configuration.
+- `-f ~/stars-sandbox/observability/values.local.yaml` loads your private OpenObserve configuration.
 - `install` creates a new Helm installation.
 - `openobserve` is the Helm **release name**.
 - `openobserve/openobserve-standalone` is the Helm chart being installed.
@@ -180,7 +194,7 @@ STATUS: deployed
 Check the pods:
 
 ```bash
-kubectl get pods -n stars
+kubectl get pods -n stars -w
 ```
 
 Wait until the OpenObserve pod shows:
@@ -189,6 +203,8 @@ Wait until the OpenObserve pod shows:
 READY   STATUS
 1/1     Running
 ```
+
+Once it is ready and running, interupt the command line to continue.
 
 If you encountered a CrashLoopBackOff on status, go back to the instructions when picking a Strong Password. Check your pods again until STATUS is Running and READY is 1/1.
 
