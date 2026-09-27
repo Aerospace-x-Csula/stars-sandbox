@@ -126,9 +126,7 @@ If that is the case, change your password in your values.local.yaml and save the
 After that, run this command to correct the CrashLoopBackOff.
 
 ```bash
-helm upgrade openobserve openobserve/openobserve-standalone `
-  --namespace stars `
-  -f values.local.yaml
+helm upgrade openobserve openobserve/openobserve-standalone --namespace stars -f values.local.yaml
 ```
 
 ### Important: keep this file out of Git
