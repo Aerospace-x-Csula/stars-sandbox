@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-generator
+  namespace: stars
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: log-generator
+
+  template:
+    metadata:
+      labels:
+        app: log-generator
+
+    spec:
+      terminationGracePeriodSeconds: 5
+
+      containers:
+        - name: log-generator
+          image: busybox:1.36
+
+          command:
+            - /bin/sh
+            - -c
+
+          args:
+            - |
+              trap 'exit 0' TERM INT
+
+              COUNT=1
+
+              while true; do
+                echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') level=INFO service=log-generator message=\"STARS heartbeat\" count=$COUNT"
+                COUNT=$((COUNT + 1))
+
+                sleep 5 &
+                wait $!
+              done
