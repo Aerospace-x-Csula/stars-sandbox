@@ -1,0 +1,5 @@
+auth:
+  ZO_ROOT_USER_EMAIL: "Change this to your email of your choice"
+  ZO_ROOT_USER_PASSWORD: "Change this to your password of your choice"
+
+#Create a values.local.yaml and copy the entire "auth" part to it and change your credentials
