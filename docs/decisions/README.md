@@ -21,3 +21,21 @@ Use:
 
 ```text
 ADR-XXXX-short-description.md
+
+## Status
+
+An ADR should use one of these statuses:
+
+- Proposed
+- Accepted
+- Superseded
+- Deprecated
+
+## Creating an ADR
+
+1. Copy [ADR-template.md].
+2. Assign the next ADR number.
+3. Fill in the context, decision, alternatives, and consequences.
+4. Open a pull request.
+5. Have the relevant technical owner review the decision.
+6. Change the status to Accepted when the team approves it.
