@@ -19,7 +19,6 @@ Create an ADR when a decision:
 
 Use:
 
-```text
 ADR-XXXX-short-description.md
 
 ## Status
