@@ -10,49 +10,27 @@ The project is intended to progress from local infrastructure and sample applica
 
 ## Current High-Level Flow
 
-```text
-Local Developer Workstation
-          |
-          v
-        Docker
-          |
-          v
-       Minikube
-          |
-          v
- Kubernetes Sandbox
-          |
-          +--> Sample Applications
-          |
-          +--> OpenObserve
-          |
-          +--> Telemetry Collection
-          |
-          v
-   Future AI Detection / RCA
-          |
-          v
- Controlled Remediation
+Local Developer Workstation --> Docker --> Minikube --> Kubernetes Sandbox (Sample Applications, OpenObserve, Telemetry Collection) --> Future AI Detection / RCA --> Controlled Remediation
 
 ## Current Repository Areas
 
-**Infrastructure:** (infrastructure/)
+- **Infrastructure:** (infrastructure/)
 
 Owns the local cluster and sandbox infrastructure configuration.
 
-**Applications:** (apps/)
+- **Applications:** (apps/)
 
 Contains sample applications and telemetry-generation workloads used by the sandbox.
 
-**Observability:** (observability/)
+- **Observability:** (observability/)
 
 Contains OpenObserve and telemetry collection configuration and documentation.
 
-**Automation:** (automation/)
+- **Automation:** (automation/)
 
 Contains automation and remediation-related implementation.
 
-**Documentation:** (docs/)
+- **Documentation:** (docs/)
 
 Contains cross-system architecture, onboarding, operational, runbook, and release documentation.
 
@@ -60,7 +38,7 @@ Contains cross-system architecture, onboarding, operational, runbook, and releas
 
 The current repository README describes the project flow as:
 
-Sandbox (Minikube) -> Sample Apps -> OpenObserve -> AI Detection -> Auto-Fix
+Sandbox (Minikube) --> Sample Apps --> OpenObserve --> AI Detection --> Auto-Fix
 
 The current near-term goal is to get the sandbox, sample applications, and OpenObserve working together reliably.
 
