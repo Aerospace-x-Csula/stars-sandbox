@@ -1,0 +1,7 @@
+k8sCluster: stars-cluster
+
+exporters:
+  otlphttp/openobserve:
+    endpoint: http://openobserve-openobserve-standalone.stars.svc.cluster.local:5080/api/default
+    headers:
+      Authorization: "Basic CHANGE-THIS"
