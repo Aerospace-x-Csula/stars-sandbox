@@ -4,7 +4,6 @@ Sandbox environment for the STARS AI-Powered Observability Platform, a CSULA Sen
 
 ## What we're building
 
-```text
 Sandbox (Minikube) → Sample Apps → OpenObserve → AI Detection → Auto-Fix
 
 **Current goal:** the first three steps working together.
