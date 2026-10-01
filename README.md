@@ -20,7 +20,7 @@ Sandbox (Minikube) → Sample Apps → OpenObserve → AI Detection → Auto-Fix
 
 ## Getting started
 
-1. Read [CONTRIBUTING.md].
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md)
 2. Clone this repo:
    ```
    git clone https://github.com/Aerospace-x-Csula/stars-sandbox.git
@@ -29,13 +29,13 @@ Sandbox (Minikube) → Sample Apps → OpenObserve → AI Detection → Auto-Fix
    ```
    cd stars-sandbox
    ```
-4. Follow the [docs/local-setup.md].
+4. Follow the [docs/local-setup.md](docs/local-setup.md).
 5. Check the **STARS Tasks** board for your assigned task.
 
 ## Documentation
 
 The documentation index is available at:
-[docs/README.md]
+[docs/README.md](docs/README.md)
 
 ## How we work
 
