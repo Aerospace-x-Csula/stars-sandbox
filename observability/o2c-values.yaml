@@ -4,4 +4,9 @@ exporters:
   otlphttp/openobserve:
     endpoint: http://openobserve-openobserve-standalone.stars.svc.cluster.local:5080/api/default
     headers:
-      Authorization: "Basic CHANGE-THIS"
+      Authorization: "Basic REPLACE_ME"
+
+  otlphttp/openobserve_k8s_events:
+    endpoint: http://openobserve-openobserve-standalone.stars.svc.cluster.local:5080/api/default
+    headers:
+      Authorization: "Basic REPLACE_ME"
