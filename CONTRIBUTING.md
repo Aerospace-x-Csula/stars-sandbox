@@ -10,7 +10,7 @@ Read this before you push. If something here is unclear or wrong, open a PR to f
 | `apps/` | Data/Test Engineering | Sample apps and failure scenarios |
 | `observability/` | Observability | OpenObserve, collector, dashboards |
 | `automation/` | Automation & Self-Healing | Failure injection and recovery steps |
-| `docs/` | Documentation & Release | Setup guide, demo guide |
+| `docs/` | Documentation & Release | Architecture, onboarding, runbooks, release, and handoff documentation |
 
 New top-level folder = a PR that adds a row here.
 
@@ -21,6 +21,15 @@ New top-level folder = a PR that adds a row here.
 - Names are lowercase with dashes: `log-generator`, not `LogGenerator` or `log_generator`
 - Use `.yaml`, not `.yml`
 - All commands in READMEs run from the **repo root** with relative paths, for example `-f observability/openobserve/values.local.yaml`. Never use `~/stars-sandbox/...`
+
+### Documentation
+
+- Keep the root `README.md` concise and use it as the repository entry point.
+- Put cross-system architecture, onboarding, operations, runbooks, and release documentation under `docs/`.
+- Keep component-specific technical documentation close to the component it describes.
+- Avoid copying the same procedure into multiple documents; link to the authoritative guide instead.
+- Documentation containing commands must be tested before it is marked verified.
+- Technical workstream owners review technical facts related to their components.
 
 ## Secrets
 
