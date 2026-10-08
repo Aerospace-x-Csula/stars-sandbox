@@ -1,0 +1,48 @@
+apiVersion: apps/v1                 # Kubernetes API version
+kind: Deployment                    # Create a Deployment
+
+metadata:
+  name: error-generator             # Deployment name
+  namespace: stars                  # Put it in the "stars" namespace
+
+spec:
+  replicas: 1                       # Run 1 Pod
+
+  selector:
+    matchLabels:
+      app: error-generator          # Deployment manages Pods with this label
+
+  template:
+    metadata:
+      labels:
+        app: error-generator        # Label given to the Pod
+
+    spec:
+      containers:
+        - name: error-generator     # Container name
+          image: busybox:1.36       # Small Linux container image
+
+          command:
+            - /bin/sh               # Start Linux shell
+            - -c                    # Run the following text as a command
+            - |
+              while true; do        # Repeat forever
+
+                echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") INFO request completed successfully status=200"
+                # Generate normal INFO log
+
+                sleep 5
+
+                echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") WARN high latency detected latency_ms=1800"
+                # Generate fake high-latency warning
+
+                sleep 5
+                echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") ERROR authentication failure user_id=test-user reason=invalid_token"
+                # Generate fake authentication error
+
+                sleep 5
+                echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") ERROR database timeout database=stars-db timeout_ms=5000"
+                # Generate fake database timeout error
+
+                sleep 5
+              done
