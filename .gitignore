@@ -8,7 +8,6 @@ __pycache__/
 
 # YAML files
 observability/values.local.yaml
-observability/o2c-values.local.yaml
 
 # Distribution / packaging
 .Python
