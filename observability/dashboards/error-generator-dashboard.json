@@ -102,7 +102,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) as \"y_axis_1\"\r\nFROM \"default\"\r\nWHERE k8s_container_name = 'error-generator'\r\n  AND body LIKE '%ERROR%'",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"             -- Count all matching ERROR logs\r\nFROM \"default\"                                     -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'         -- Only logs from log-generator\r\n  AND body LIKE '%level=ERROR%'                    -- Only logs with ERROR level",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -127,7 +127,9 @@
                       }
                     ],
                     "isDerived": false,
-                    "havingConditions": []
+                    "havingConditions": [],
+                    "treatAsNonTimestamp": false,
+                    "showFieldAsJson": false
                   }
                 ],
                 "z": [],
@@ -165,7 +167,7 @@
         {
           "id": "Panel_ID610810",
           "type": "metric",
-          "title": "Database Timeouts",
+          "title": "Connectivity Failures",
           "description": "",
           "config": {
             "show_legends": true,
@@ -253,7 +255,160 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) as \"y_axis_1\"\r\nFROM \"default\"\r\nWHERE k8s_container_name = 'error-generator'\r\n  AND body LIKE '%database timeout%'",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"             -- Count connectivity failure logs\r\nFROM \"default\"                                     -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'         -- Only logs from log-generator\r\n  AND body LIKE '%level=ERROR%'                    -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=connectivity%'          -- Only connectivity failure scenarios",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "default",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "_timestamp",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "type": "build",
+                    "color": null,
+                    "functionName": "count",
+                    "args": [
+                      {
+                        "type": "field",
+                        "value": {
+                          "field": "_timestamp",
+                          "streamAlias": null
+                        }
+                      }
+                    ],
+                    "isDerived": false,
+                    "havingConditions": [],
+                    "treatAsNonTimestamp": false,
+                    "showFieldAsJson": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1,
+                "limit": 0,
+                "min": 0,
+                "max": 100,
+                "time_shift": [],
+                "query_label": ""
+              },
+              "joins": []
+            }
+          ],
+          "layout": {
+            "x": 91,
+            "y": 0,
+            "w": 46,
+            "h": 8,
+            "i": 2
+          },
+          "htmlContent": "",
+          "markdownContent": "",
+          "customChartContent": " // To know more about ECharts , \n// visit: https://echarts.apache.org/examples/en/index.html \n// Example: https://echarts.apache.org/examples/en/editor.html?c=line-simple \n// Define your ECharts 'option' here. \n// 'data' variable is available for use and contains the response data from the search result and it is an array.\noption = {  \n \n};\n  "
+        },
+        {
+          "id": "Panel_ID9765710",
+          "type": "metric",
+          "title": "Total Warnings",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2,
+            "line_thickness": 1.5,
+            "step_value": "0",
+            "top_results_others": false,
+            "axis_border_show": false,
+            "label_option": {
+              "rotate": 0
+            },
+            "axis_label_rotate": 0,
+            "show_symbol": false,
+            "line_interpolation": "smooth",
+            "legend_width": {
+              "unit": "px"
+            },
+            "legend_height": {
+              "unit": "px"
+            },
+            "base_map": {
+              "type": "osm"
+            },
+            "map_type": {
+              "type": "world"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "map_symbol_style": {
+              "size": "by Value",
+              "size_by_value": {
+                "min": 1,
+                "max": 100
+              },
+              "size_fixed": 2
+            },
+            "drilldown": [],
+            "mark_line": [],
+            "override_config": [],
+            "connect_nulls": false,
+            "no_value_replacement": "",
+            "wrap_table_cells": false,
+            "table_transpose": false,
+            "table_dynamic_columns": false,
+            "mappings": [],
+            "color": {
+              "mode": "palette-classic-by-series",
+              "fixedColor": [
+                "#53ca53"
+              ],
+              "seriesBy": "last",
+              "colorBySeries": []
+            },
+            "trellis": {
+              "layout": null,
+              "num_of_columns": 1,
+              "group_by_y_axis": false
+            },
+            "show_gridlines": true,
+            "aggregation": "last",
+            "lat_label": "latitude",
+            "lon_label": "longitude",
+            "weight_label": "weight",
+            "name_label": "name",
+            "table_aggregations": [
+              "last"
+            ],
+            "promql_table_mode": "single",
+            "visible_columns": [],
+            "hidden_columns": [],
+            "sticky_columns": [],
+            "sticky_first_column": false,
+            "column_order": [],
+            "table_pagination": false,
+            "table_pivot_show_row_totals": false,
+            "table_pivot_show_col_totals": false,
+            "table_pivot_sticky_row_totals": false,
+            "table_pivot_sticky_col_totals": false,
+            "panel_time_enabled": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"          -- Count all matching WARN logs\r\nFROM \"default\"                                  -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'      -- Only logs from log-generator\r\n  AND body LIKE '%level=WARN%'                  -- Only WARN-level logs",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -307,341 +462,9 @@
           "layout": {
             "x": 44,
             "y": 0,
-            "w": 46,
-            "h": 8,
-            "i": 2
-          },
-          "htmlContent": "",
-          "markdownContent": "",
-          "customChartContent": " // To know more about ECharts , \n// visit: https://echarts.apache.org/examples/en/index.html \n// Example: https://echarts.apache.org/examples/en/editor.html?c=line-simple \n// Define your ECharts 'option' here. \n// 'data' variable is available for use and contains the response data from the search result and it is an array.\noption = {  \n \n};\n  "
-        },
-        {
-          "id": "Panel_ID9765710",
-          "type": "metric",
-          "title": "Authentication Failures",
-          "description": "",
-          "config": {
-            "show_legends": true,
-            "legends_position": null,
-            "decimals": 2,
-            "line_thickness": 1.5,
-            "step_value": "0",
-            "top_results_others": false,
-            "axis_border_show": false,
-            "label_option": {
-              "rotate": 0
-            },
-            "axis_label_rotate": 0,
-            "show_symbol": false,
-            "line_interpolation": "smooth",
-            "legend_width": {
-              "unit": "px"
-            },
-            "legend_height": {
-              "unit": "px"
-            },
-            "base_map": {
-              "type": "osm"
-            },
-            "map_type": {
-              "type": "world"
-            },
-            "map_view": {
-              "zoom": 1,
-              "lat": 0,
-              "lng": 0
-            },
-            "map_symbol_style": {
-              "size": "by Value",
-              "size_by_value": {
-                "min": 1,
-                "max": 100
-              },
-              "size_fixed": 2
-            },
-            "drilldown": [],
-            "mark_line": [],
-            "override_config": [],
-            "connect_nulls": false,
-            "no_value_replacement": "",
-            "wrap_table_cells": false,
-            "table_transpose": false,
-            "table_dynamic_columns": false,
-            "mappings": [],
-            "color": {
-              "mode": "palette-classic-by-series",
-              "fixedColor": [
-                "#53ca53"
-              ],
-              "seriesBy": "last",
-              "colorBySeries": []
-            },
-            "trellis": {
-              "layout": null,
-              "num_of_columns": 1,
-              "group_by_y_axis": false
-            },
-            "show_gridlines": true,
-            "aggregation": "last",
-            "lat_label": "latitude",
-            "lon_label": "longitude",
-            "weight_label": "weight",
-            "name_label": "name",
-            "table_aggregations": [
-              "last"
-            ],
-            "promql_table_mode": "single",
-            "visible_columns": [],
-            "hidden_columns": [],
-            "sticky_columns": [],
-            "sticky_first_column": false,
-            "column_order": [],
-            "table_pagination": false,
-            "table_pivot_show_row_totals": false,
-            "table_pivot_show_col_totals": false,
-            "table_pivot_sticky_row_totals": false,
-            "table_pivot_sticky_col_totals": false,
-            "panel_time_enabled": false
-          },
-          "queryType": "sql",
-          "queries": [
-            {
-              "query": "SELECT count(_timestamp) as \"y_axis_1\"\r\nFROM \"default\"\r\nWHERE k8s_container_name = 'error-generator'\r\n  AND body LIKE '%authentication failure%'",
-              "vrlFunctionQuery": "",
-              "customQuery": true,
-              "fields": {
-                "stream": "default",
-                "stream_type": "logs",
-                "x": [],
-                "y": [
-                  {
-                    "label": "_timestamp",
-                    "alias": "y_axis_1",
-                    "column": "y_axis_1",
-                    "type": "build",
-                    "color": null,
-                    "functionName": "count",
-                    "args": [
-                      {
-                        "type": "field",
-                        "value": {
-                          "field": "_timestamp",
-                          "streamAlias": null
-                        }
-                      }
-                    ],
-                    "isDerived": false,
-                    "havingConditions": [],
-                    "treatAsNonTimestamp": false,
-                    "showFieldAsJson": false
-                  }
-                ],
-                "z": [],
-                "breakdown": [],
-                "filter": {
-                  "filterType": "group",
-                  "logicalOperator": "AND",
-                  "conditions": []
-                }
-              },
-              "config": {
-                "promql_legend": "",
-                "layer_type": "scatter",
-                "weight_fixed": 1,
-                "limit": 0,
-                "min": 0,
-                "max": 100,
-                "time_shift": [],
-                "query_label": ""
-              },
-              "joins": []
-            }
-          ],
-          "layout": {
-            "x": 90,
-            "y": 0,
-            "w": 49,
+            "w": 47,
             "h": 8,
             "i": 3
-          },
-          "htmlContent": "",
-          "markdownContent": "",
-          "customChartContent": " // To know more about ECharts , \n// visit: https://echarts.apache.org/examples/en/index.html \n// Example: https://echarts.apache.org/examples/en/editor.html?c=line-simple \n// Define your ECharts 'option' here. \n// 'data' variable is available for use and contains the response data from the search result and it is an array.\noption = {  \n \n};\n  "
-        },
-        {
-          "id": "Panel_ID3755810",
-          "type": "line",
-          "title": "Errors Over Time",
-          "description": "",
-          "config": {
-            "show_legends": true,
-            "legends_position": null,
-            "decimals": 2,
-            "line_thickness": 1.5,
-            "step_value": "0",
-            "top_results_others": false,
-            "axis_border_show": false,
-            "label_option": {
-              "rotate": 0
-            },
-            "axis_label_rotate": 0,
-            "show_symbol": false,
-            "line_interpolation": "smooth",
-            "legend_width": {
-              "unit": "px"
-            },
-            "legend_height": {
-              "unit": "px"
-            },
-            "base_map": {
-              "type": "osm"
-            },
-            "map_type": {
-              "type": "world"
-            },
-            "map_view": {
-              "zoom": 1,
-              "lat": 0,
-              "lng": 0
-            },
-            "map_symbol_style": {
-              "size": "by Value",
-              "size_by_value": {
-                "min": 1,
-                "max": 100
-              },
-              "size_fixed": 2
-            },
-            "drilldown": [],
-            "mark_line": [],
-            "override_config": [],
-            "connect_nulls": false,
-            "no_value_replacement": "",
-            "wrap_table_cells": false,
-            "table_transpose": false,
-            "table_dynamic_columns": false,
-            "mappings": [],
-            "color": {
-              "mode": "palette-classic-by-series",
-              "fixedColor": [
-                "#53ca53"
-              ],
-              "seriesBy": "last",
-              "colorBySeries": []
-            },
-            "trellis": {
-              "layout": null,
-              "num_of_columns": 1,
-              "group_by_y_axis": false
-            },
-            "show_gridlines": true,
-            "aggregation": "last",
-            "lat_label": "latitude",
-            "lon_label": "longitude",
-            "weight_label": "weight",
-            "name_label": "name",
-            "table_aggregations": [
-              "last"
-            ],
-            "promql_table_mode": "single",
-            "visible_columns": [],
-            "hidden_columns": [],
-            "sticky_columns": [],
-            "sticky_first_column": false,
-            "column_order": [],
-            "table_pagination": false,
-            "table_pivot_show_row_totals": false,
-            "table_pivot_show_col_totals": false,
-            "table_pivot_sticky_row_totals": false,
-            "table_pivot_sticky_col_totals": false,
-            "panel_time_enabled": false
-          },
-          "queryType": "sql",
-          "queries": [
-            {
-              "query": "SELECT histogram(_timestamp, '1 minute') as \"x_axis_1\",   -- Group logs into 1-minute buckets\r\n       count(_timestamp) as \"y_axis_1\"                    -- Count errors in each bucket\r\nFROM \"default\"                                            -- Use the default log stream\r\nWHERE k8s_container_name = 'error-generator'              -- Only error-generator logs\r\n  AND body LIKE '%ERROR%'                                 -- Only logs containing ERROR\r\nGROUP BY x_axis_1                                         -- Group the counts by time\r\nORDER BY x_axis_1 ASC                                     -- Oldest time to newest",
-              "vrlFunctionQuery": "",
-              "customQuery": true,
-              "fields": {
-                "stream": "default",
-                "stream_type": "logs",
-                "x": [
-                  {
-                    "label": "_timestamp",
-                    "alias": "x_axis_1",
-                    "column": "x_axis_1",
-                    "type": "build",
-                    "color": null,
-                    "functionName": "histogram",
-                    "sortBy": "ASC",
-                    "args": [
-                      {
-                        "type": "field",
-                        "value": {
-                          "field": "_timestamp",
-                          "streamAlias": null
-                        }
-                      },
-                      {
-                        "type": "histogramInterval"
-                      }
-                    ],
-                    "isDerived": false,
-                    "havingConditions": [],
-                    "treatAsNonTimestamp": false,
-                    "showFieldAsJson": false
-                  }
-                ],
-                "y": [
-                  {
-                    "label": "_timestamp",
-                    "alias": "y_axis_1",
-                    "column": "y_axis_1",
-                    "type": "build",
-                    "color": null,
-                    "functionName": "count",
-                    "args": [
-                      {
-                        "type": "field",
-                        "value": {
-                          "field": "_timestamp",
-                          "streamAlias": null
-                        }
-                      }
-                    ],
-                    "isDerived": false,
-                    "havingConditions": [],
-                    "treatAsNonTimestamp": false,
-                    "showFieldAsJson": false
-                  }
-                ],
-                "z": [],
-                "breakdown": [],
-                "filter": {
-                  "filterType": "group",
-                  "logicalOperator": "AND",
-                  "conditions": []
-                }
-              },
-              "config": {
-                "promql_legend": "",
-                "layer_type": "scatter",
-                "weight_fixed": 1,
-                "limit": 0,
-                "min": 0,
-                "max": 100,
-                "time_shift": [],
-                "query_label": ""
-              },
-              "joins": []
-            }
-          ],
-          "layout": {
-            "x": 0,
-            "y": 8,
-            "w": 90,
-            "h": 16,
-            "i": 4
           },
           "htmlContent": "",
           "markdownContent": "",
@@ -738,7 +561,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT to_timestamp(_timestamp / 1000000) AS \"time\",  -- Convert microseconds to readable time\r\n       body AS \"error\"                                 -- The actual error message\r\nFROM \"default\"                                         -- Use the default log stream\r\nWHERE k8s_container_name = 'error-generator'           -- Only our generator\r\n  AND body LIKE '%ERROR%'                              -- Only ERROR logs\r\nORDER BY _timestamp DESC                               -- Newest errors first\r\nLIMIT 20                                               -- Only show the latest 20",
+              "query": "SELECT to_timestamp(_timestamp / 1000000) AS \"time\",     -- Convert timestamp to readable time\r\n       body AS \"error\"                                   -- Show the actual error message\r\nFROM \"default\"                                           -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'               -- Only log-generator logs\r\n  AND body LIKE '%level=ERROR%'                          -- Only ERROR logs\r\nORDER BY _timestamp DESC                                 -- Newest errors first\r\nLIMIT 50                                                 -- Only show the latest 50",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -809,11 +632,356 @@
             }
           ],
           "layout": {
-            "x": 90,
+            "x": 91,
             "y": 8,
             "w": 92,
             "h": 16,
             "i": 5
+          },
+          "htmlContent": "",
+          "markdownContent": "",
+          "customChartContent": " // To know more about ECharts , \n// visit: https://echarts.apache.org/examples/en/index.html \n// Example: https://echarts.apache.org/examples/en/editor.html?c=line-simple \n// Define your ECharts 'option' here. \n// 'data' variable is available for use and contains the response data from the search result and it is an array.\noption = {  \n \n};\n  "
+        },
+        {
+          "id": "Panel_ID9228110",
+          "type": "bar",
+          "title": "Errors Over Time",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2,
+            "line_thickness": 1.5,
+            "step_value": "0",
+            "top_results_others": false,
+            "axis_border_show": false,
+            "label_option": {
+              "rotate": 0
+            },
+            "axis_label_rotate": 0,
+            "show_symbol": false,
+            "line_interpolation": "smooth",
+            "legend_width": {
+              "unit": "px"
+            },
+            "legend_height": {
+              "unit": "px"
+            },
+            "base_map": {
+              "type": "osm"
+            },
+            "map_type": {
+              "type": "world"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "map_symbol_style": {
+              "size": "by Value",
+              "size_by_value": {
+                "min": 1,
+                "max": 100
+              },
+              "size_fixed": 2
+            },
+            "drilldown": [],
+            "mark_line": [],
+            "override_config": [],
+            "connect_nulls": false,
+            "no_value_replacement": "",
+            "wrap_table_cells": false,
+            "table_transpose": false,
+            "table_dynamic_columns": false,
+            "mappings": [],
+            "color": {
+              "mode": "palette-classic-by-series",
+              "fixedColor": [
+                "#53ca53"
+              ],
+              "seriesBy": "last",
+              "colorBySeries": []
+            },
+            "trellis": {
+              "layout": null,
+              "num_of_columns": 1,
+              "group_by_y_axis": false
+            },
+            "show_gridlines": true,
+            "aggregation": "last",
+            "lat_label": "latitude",
+            "lon_label": "longitude",
+            "weight_label": "weight",
+            "name_label": "name",
+            "table_aggregations": [
+              "last"
+            ],
+            "promql_table_mode": "single",
+            "visible_columns": [],
+            "hidden_columns": [],
+            "sticky_columns": [],
+            "sticky_first_column": false,
+            "column_order": [],
+            "table_pagination": false,
+            "table_pivot_show_row_totals": false,
+            "table_pivot_show_col_totals": false,
+            "table_pivot_sticky_row_totals": false,
+            "table_pivot_sticky_col_totals": false,
+            "panel_time_enabled": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT\r\n    histogram(_timestamp) AS \"x_axis_1\",        -- Group ERROR logs into time buckets\r\n    count(_timestamp) AS \"y_axis_1\"             -- Count how many ERROR logs are in each bucket\r\nFROM \"default\"                                  -- Search the default OpenObserve log stream\r\nWHERE k8s_container_name = 'log-generator'      -- Only logs from log-generator\r\n  AND str_match(body, 'level=ERROR')            -- Only logs that contain level=ERROR\r\nGROUP BY x_axis_1                               -- Create one count for each time bucket\r\nORDER BY x_axis_1 ASC                           -- Show oldest time to newest time",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "default",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "_timestamp",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "type": "build",
+                    "color": null,
+                    "functionName": "histogram",
+                    "sortBy": "ASC",
+                    "args": [
+                      {
+                        "type": "field",
+                        "value": {
+                          "field": "_timestamp",
+                          "streamAlias": null
+                        }
+                      },
+                      {
+                        "type": "histogramInterval"
+                      }
+                    ],
+                    "isDerived": false,
+                    "havingConditions": [],
+                    "treatAsNonTimestamp": false,
+                    "showFieldAsJson": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "_timestamp",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "type": "build",
+                    "color": null,
+                    "functionName": "count",
+                    "args": [
+                      {
+                        "type": "field",
+                        "value": {
+                          "field": "_timestamp",
+                          "streamAlias": null
+                        }
+                      }
+                    ],
+                    "isDerived": false,
+                    "havingConditions": [],
+                    "treatAsNonTimestamp": false,
+                    "showFieldAsJson": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": [
+                    {
+                      "type": "condition",
+                      "values": [],
+                      "column": {
+                        "field": "body",
+                        "streamAlias": null
+                      },
+                      "operator": "Contains",
+                      "value": "level=ERROR",
+                      "logicalOperator": "AND",
+                      "filterType": "condition"
+                    }
+                  ]
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1,
+                "limit": 0,
+                "min": 0,
+                "max": 100,
+                "time_shift": [],
+                "query_label": ""
+              },
+              "joins": []
+            }
+          ],
+          "layout": {
+            "x": 1,
+            "y": 8,
+            "w": 90,
+            "h": 16,
+            "i": 6
+          },
+          "htmlContent": "",
+          "markdownContent": "",
+          "customChartContent": " // To know more about ECharts , \n// visit: https://echarts.apache.org/examples/en/index.html \n// Example: https://echarts.apache.org/examples/en/editor.html?c=line-simple \n// Define your ECharts 'option' here. \n// 'data' variable is available for use and contains the response data from the search result and it is an array.\noption = {  \n \n};\n  "
+        },
+        {
+          "id": "Panel_ID517310",
+          "type": "metric",
+          "title": "Crashes",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2,
+            "line_thickness": 1.5,
+            "step_value": "0",
+            "top_results_others": false,
+            "axis_border_show": false,
+            "label_option": {
+              "rotate": 0
+            },
+            "axis_label_rotate": 0,
+            "show_symbol": false,
+            "line_interpolation": "smooth",
+            "legend_width": {
+              "unit": "px"
+            },
+            "legend_height": {
+              "unit": "px"
+            },
+            "base_map": {
+              "type": "osm"
+            },
+            "map_type": {
+              "type": "world"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "map_symbol_style": {
+              "size": "by Value",
+              "size_by_value": {
+                "min": 1,
+                "max": 100
+              },
+              "size_fixed": 2
+            },
+            "drilldown": [],
+            "mark_line": [],
+            "override_config": [],
+            "connect_nulls": false,
+            "no_value_replacement": "",
+            "wrap_table_cells": false,
+            "table_transpose": false,
+            "table_dynamic_columns": false,
+            "mappings": [],
+            "color": {
+              "mode": "palette-classic-by-series",
+              "fixedColor": [
+                "#53ca53"
+              ],
+              "seriesBy": "last",
+              "colorBySeries": []
+            },
+            "trellis": {
+              "layout": null,
+              "num_of_columns": 1,
+              "group_by_y_axis": false
+            },
+            "show_gridlines": true,
+            "aggregation": "last",
+            "lat_label": "latitude",
+            "lon_label": "longitude",
+            "weight_label": "weight",
+            "name_label": "name",
+            "table_aggregations": [
+              "last"
+            ],
+            "promql_table_mode": "single",
+            "visible_columns": [],
+            "hidden_columns": [],
+            "sticky_columns": [],
+            "sticky_first_column": false,
+            "column_order": [],
+            "table_pagination": false,
+            "table_pivot_show_row_totals": false,
+            "table_pivot_show_col_totals": false,
+            "table_pivot_sticky_row_totals": false,
+            "table_pivot_sticky_col_totals": false,
+            "panel_time_enabled": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"          -- Count container crash ERROR logs\r\nFROM \"default\"                                  -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'      -- Only logs from log-generator\r\n  AND body LIKE '%level=ERROR%'                 -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=crash%'              -- Only crash scenario logs",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "default",
+                "stream_type": "logs",
+                "x": [],
+                "y": [
+                  {
+                    "label": "_timestamp",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "type": "build",
+                    "color": null,
+                    "functionName": "count",
+                    "args": [
+                      {
+                        "type": "field",
+                        "value": {
+                          "field": "_timestamp",
+                          "streamAlias": null
+                        }
+                      }
+                    ],
+                    "isDerived": false,
+                    "havingConditions": [],
+                    "treatAsNonTimestamp": false,
+                    "showFieldAsJson": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1,
+                "limit": 0,
+                "min": 0,
+                "max": 100,
+                "time_shift": [],
+                "query_label": ""
+              },
+              "joins": []
+            }
+          ],
+          "layout": {
+            "x": 137,
+            "y": 0,
+            "w": 46,
+            "h": 8,
+            "i": 7
           },
           "htmlContent": "",
           "markdownContent": "",
