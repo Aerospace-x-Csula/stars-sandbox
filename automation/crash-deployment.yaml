@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crash-on-start
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crash-on-start
+  template:
+    metadata:
+      labels:
+        app: crash-on-start
+    spec:
+      containers:
+        - name: crash-container
+          image: busybox:1.36
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Container is starting..."
+              echo "Crashing on purpose"
+              exit 1
