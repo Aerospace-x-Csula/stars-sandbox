@@ -10,7 +10,8 @@ Read this before you push. If something here is unclear or wrong, open a PR to f
 | `apps/` | Data/Test Engineering | Sample apps and failure scenarios |
 | `observability/` | Observability | OpenObserve, collector, dashboards |
 | `automation/` | Automation & Self-Healing | Failure injection and recovery steps |
-| `docs/` | Documentation & Release | Architecture, onboarding, runbooks, release, and handoff documentation |
+| `ai/` | AI/ML | Anomaly detection, AI settings, and test results |
+| `documentation/` | Documentation & Release | Architecture, onboarding, runbooks, release, and handoff documentation |
 
 New top-level folder = a PR that adds a row here.
 
@@ -45,21 +46,49 @@ New top-level folder = a PR that adds a row here.
 
 ## Branches
 
-```
-<type>/<team>-<short-name>
-```
+Each team has one branch. Your team commits there, not to `main`.
 
-- **type:** `feat`, `fix`, `docs`, `chore`
-- **team:** the folder name (`infrastructure`, `apps`, `observability`, `automation`, `docs`)
-- Examples: `feat/apps-log-generator`, `feat/observability-collector`, `docs/infrastructure-minikube-start`
+| Team | Branch |
+|---|---|
+| Infrastructure | `infrastructure` |
+| Data/Test Engineering | `apps` |
+| Observability | `observability` |
+| AI/ML | `ai` |
+| Automation & Self-Healing | `automation` |
+| Documentation & Release | `docs` |
+
+- Run `git pull` before you start working and before you push
+- Never force-push a team branch
+- After each release, update your team branch from `main` before starting new work:
+
+```
+git checkout <team-branch>
+git pull
+git pull origin main
+git push
+```
 
 ## Commits and PRs
 
 - Commits use [Conventional Commits](https://www.conventionalcommits.org/) and link the issue: `feat: add collector values (Refs #12)`
 - Never push to `main`. Open a PR
-- One component per PR
-- Your folder's sub-lead reviews and approves
+- One PR per team every two weeks, from your team branch to `main`. It can cover several components
+- A team member opens the PR, not the sub-lead. GitHub won't let you approve your own PR
+- The PR must be ready by Sunday, before the Monday leads meeting
+- Your team helps review. Your sub-lead approves, then Jonas or Moises gives final approval and merges
 - Before opening the PR, confirm that:
   - [ ] Names follow this file
-  - [ ] The README is updated in the same PR
+  - [ ] Every component you changed has its README updated
+  - [ ] Your component's diagram is added or updated
   - [ ] It works on a fresh cluster (`minikube delete`, then follow your README)
+
+## Releases
+
+Every two weeks, at the Monday leads meeting:
+
+1. Leads go over blockers and each team's PR
+2. Approved PRs merge into `main`
+3. `main` is tagged as the release: `v0.1.0`, `v0.2.0`, and so on
+4. Until Friday, only fixes go into `main`. That Friday we show the release to Aerospace
+
+Documentation & Release writes the release notes, using `docs/release/release-checklist.md`.
