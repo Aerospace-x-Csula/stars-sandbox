@@ -102,7 +102,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) AS \"y_axis_1\"             -- Count all matching ERROR logs\r\nFROM \"default\"                                     -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'         -- Only logs from log-generator\r\n  AND body LIKE '%level=ERROR%'                    -- Only logs with ERROR level",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count all matching ERROR logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -255,7 +255,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) AS \"y_axis_1\"             -- Count connectivity failure logs\r\nFROM \"default\"                                     -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'         -- Only logs from log-generator\r\n  AND body LIKE '%level=ERROR%'                    -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=connectivity%'          -- Only connectivity failure scenarios",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count connectivity failure logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=connectivity%'              -- Only connectivity failures",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -408,7 +408,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) AS \"y_axis_1\"          -- Count all matching WARN logs\r\nFROM \"default\"                                  -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'      -- Only logs from log-generator\r\n  AND body LIKE '%level=WARN%'                  -- Only WARN-level logs",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count all matching WARN logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=WARN%'                         -- Only WARN-level logs",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -561,7 +561,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT to_timestamp(_timestamp / 1000000) AS \"time\",     -- Convert timestamp to readable time\r\n       body AS \"error\"                                   -- Show the actual error message\r\nFROM \"default\"                                           -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'               -- Only log-generator logs\r\n  AND body LIKE '%level=ERROR%'                          -- Only ERROR logs\r\nORDER BY _timestamp DESC                                 -- Newest errors first\r\nLIMIT 50                                                 -- Only show the latest 50",
+              "query": "SELECT\r\n    to_timestamp(_timestamp / 1000000) AS \"time\",      -- Convert timestamp to readable time\r\n    k8s_container_name AS \"source\",                    -- Show which generator made the log\r\n    body AS \"error\"                                    -- Show the actual ERROR message\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs\r\nORDER BY _timestamp DESC                               -- Newest errors first\r\nLIMIT 50                                               -- Show latest 50 errors",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -633,7 +633,7 @@
           ],
           "layout": {
             "x": 91,
-            "y": 8,
+            "y": 24,
             "w": 92,
             "h": 16,
             "i": 5
@@ -733,7 +733,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT\r\n    histogram(_timestamp) AS \"x_axis_1\",        -- Group ERROR logs into time buckets\r\n    count(_timestamp) AS \"y_axis_1\"             -- Count how many ERROR logs are in each bucket\r\nFROM \"default\"                                  -- Search the default OpenObserve log stream\r\nWHERE k8s_container_name = 'log-generator'      -- Only logs from log-generator\r\n  AND str_match(body, 'level=ERROR')            -- Only logs that contain level=ERROR\r\nGROUP BY x_axis_1                               -- Create one count for each time bucket\r\nORDER BY x_axis_1 ASC                           -- Show oldest time to newest time",
+              "query": "SELECT\r\n    histogram(_timestamp) AS \"x_axis_1\",              -- Group ERROR logs into time buckets\r\n    count(_timestamp) AS \"y_axis_1\"                   -- Count ERROR logs in each bucket\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND str_match(body, 'level=ERROR')                   -- Only ERROR-level logs\r\nGROUP BY x_axis_1                                      -- Group by time\r\nORDER BY x_axis_1 ASC                                  -- Oldest to newest",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -925,7 +925,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) AS \"y_axis_1\"          -- Count container crash ERROR logs\r\nFROM \"default\"                                  -- Search the default log stream\r\nWHERE k8s_container_name = 'log-generator'      -- Only logs from log-generator\r\n  AND body LIKE '%level=ERROR%'                 -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=crash%'              -- Only crash scenario logs",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count container crash ERROR logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=crash%'                     -- Only actual crash scenarios",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -982,6 +982,185 @@
             "w": 46,
             "h": 8,
             "i": 7
+          },
+          "htmlContent": "",
+          "markdownContent": "",
+          "customChartContent": " // To know more about ECharts , \n// visit: https://echarts.apache.org/examples/en/index.html \n// Example: https://echarts.apache.org/examples/en/editor.html?c=line-simple \n// Define your ECharts 'option' here. \n// 'data' variable is available for use and contains the response data from the search result and it is an array.\noption = {  \n \n};\n  "
+        },
+        {
+          "id": "Panel_ID7893910",
+          "type": "h-stacked",
+          "title": "Errors by Type",
+          "description": "",
+          "config": {
+            "show_legends": true,
+            "legends_position": null,
+            "decimals": 2,
+            "line_thickness": 1.5,
+            "step_value": "0",
+            "top_results_others": false,
+            "axis_border_show": false,
+            "label_option": {
+              "rotate": 0
+            },
+            "axis_label_rotate": 0,
+            "show_symbol": false,
+            "line_interpolation": "smooth",
+            "legend_width": {
+              "unit": "px"
+            },
+            "legend_height": {
+              "unit": "px"
+            },
+            "base_map": {
+              "type": "osm"
+            },
+            "map_type": {
+              "type": "world"
+            },
+            "map_view": {
+              "zoom": 1,
+              "lat": 0,
+              "lng": 0
+            },
+            "map_symbol_style": {
+              "size": "by Value",
+              "size_by_value": {
+                "min": 1,
+                "max": 100
+              },
+              "size_fixed": 2
+            },
+            "drilldown": [],
+            "mark_line": [],
+            "override_config": [],
+            "connect_nulls": false,
+            "no_value_replacement": "",
+            "wrap_table_cells": false,
+            "table_transpose": false,
+            "table_dynamic_columns": false,
+            "mappings": [],
+            "color": {
+              "mode": "palette-classic-by-series",
+              "fixedColor": [
+                "#53ca53"
+              ],
+              "seriesBy": "last",
+              "colorBySeries": []
+            },
+            "trellis": {
+              "layout": null,
+              "num_of_columns": 1,
+              "group_by_y_axis": false
+            },
+            "show_gridlines": true,
+            "aggregation": "last",
+            "lat_label": "latitude",
+            "lon_label": "longitude",
+            "weight_label": "weight",
+            "name_label": "name",
+            "table_aggregations": [
+              "last"
+            ],
+            "promql_table_mode": "single",
+            "visible_columns": [],
+            "hidden_columns": [],
+            "sticky_columns": [],
+            "sticky_first_column": false,
+            "column_order": [],
+            "table_pagination": false,
+            "table_pivot_show_row_totals": false,
+            "table_pivot_show_col_totals": false,
+            "table_pivot_sticky_row_totals": false,
+            "table_pivot_sticky_col_totals": false,
+            "panel_time_enabled": false
+          },
+          "queryType": "sql",
+          "queries": [
+            {
+              "query": "SELECT\r\n    CASE\r\n        WHEN body LIKE '%scenario=authentication%' THEN 'Authentication'\r\n        WHEN body LIKE '%scenario=database%'       THEN 'Database'\r\n        WHEN body LIKE '%scenario=connectivity%'   THEN 'Connectivity'\r\n        WHEN body LIKE '%scenario=dependency%'     THEN 'Dependency'\r\n        WHEN body LIKE '%scenario=service%'        THEN 'Service'\r\n    END AS \"x_axis_1\",                              -- Error type\r\n\r\n    count(_timestamp) AS \"y_axis_1\"                 -- Number of each error type\r\n\r\nFROM \"default\"\r\n\r\nWHERE k8s_container_name = 'error-generator'       -- Only error-generator logs\r\n  AND body LIKE '%level=ERROR%'                    -- Only ERROR logs\r\n  AND (\r\n       body LIKE '%scenario=authentication%'\r\n       OR body LIKE '%scenario=database%'\r\n       OR body LIKE '%scenario=connectivity%'\r\n       OR body LIKE '%scenario=dependency%'\r\n       OR body LIKE '%scenario=service%'\r\n  )\r\n\r\nGROUP BY x_axis_1                                  -- Group errors by type\r\nORDER BY y_axis_1 DESC                             -- Highest count first",
+              "vrlFunctionQuery": "",
+              "customQuery": true,
+              "fields": {
+                "stream": "default",
+                "stream_type": "logs",
+                "x": [
+                  {
+                    "label": "_timestamp",
+                    "alias": "x_axis_1",
+                    "column": "x_axis_1",
+                    "type": "build",
+                    "color": null,
+                    "functionName": "histogram",
+                    "sortBy": "ASC",
+                    "args": [
+                      {
+                        "type": "field",
+                        "value": {
+                          "field": "_timestamp",
+                          "streamAlias": null
+                        }
+                      },
+                      {
+                        "type": "histogramInterval"
+                      }
+                    ],
+                    "isDerived": false,
+                    "havingConditions": [],
+                    "treatAsNonTimestamp": false,
+                    "showFieldAsJson": false
+                  }
+                ],
+                "y": [
+                  {
+                    "label": "_timestamp",
+                    "alias": "y_axis_1",
+                    "column": "y_axis_1",
+                    "type": "build",
+                    "color": null,
+                    "functionName": "count",
+                    "args": [
+                      {
+                        "type": "field",
+                        "value": {
+                          "field": "_timestamp",
+                          "streamAlias": null
+                        }
+                      }
+                    ],
+                    "isDerived": false,
+                    "havingConditions": [],
+                    "treatAsNonTimestamp": false,
+                    "showFieldAsJson": false
+                  }
+                ],
+                "z": [],
+                "breakdown": [],
+                "filter": {
+                  "filterType": "group",
+                  "logicalOperator": "AND",
+                  "conditions": []
+                }
+              },
+              "config": {
+                "promql_legend": "",
+                "layer_type": "scatter",
+                "weight_fixed": 1,
+                "limit": 0,
+                "min": 0,
+                "max": 100,
+                "time_shift": [],
+                "query_label": ""
+              },
+              "joins": []
+            }
+          ],
+          "layout": {
+            "x": 91,
+            "y": 8,
+            "w": 93,
+            "h": 16,
+            "i": 8
           },
           "htmlContent": "",
           "markdownContent": "",

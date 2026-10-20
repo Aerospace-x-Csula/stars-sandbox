@@ -4,83 +4,111 @@
 
 This README explains how to use the **STARS Error Monitoring** dashboard in OpenObserve.
 
-The dashboard now uses logs from the shared `log-generator` instead of the old `error-generator`.
-
-To deploy the log generator and generate WARN / ERROR / connectivity / crash test logs, follow:
+The dashboard now looks at logs from both:
 
 ```text
-apps/log-generator/README.md
+log-generator
+error-generator
 ```
 
-Log flow:
+The shared `log-generator` is used for manual WARN / ERROR / connectivity / crash tests.
+
+The `error-generator` automatically creates a spike of **20 ERROR logs**, waits **20 seconds**, then repeats.
+
+Each spike rotates through 5 simulated error types:
 
 ```text
-Workflow:
-log-generator > Kubernetes logs > OpenObserve Collector > STARS Error Monitoring Dashboard
+authentication
+database
+connectivity
+dependency
+service
 ```
 
-The dashboard monitors:
+Each 20-error spike contains about 4 of each type.
+
+All failures are simulated for observability testing only :>
 
 ```text
-Total Errors
-Total Warnings
-Connectivity Failures
-Container Crashes
-Errors Over Time
-Latest Error Logs
+log-generator -----\
+                    > Kubernetes logs > OpenObserve Collector > STARS Error Monitoring Dashboard
+error-generator ---/
 ```
 
-The `error-spike` test does not need its own panel anymore because it can already be seen in **Total Errors** and **Errors Over Time**.
+Dashboard panels:
+
+```text
+1. Total Errors
+2. Total Warnings
+3. Connectivity Failures
+4. Container Crashes
+5. Errors Over Time
+6. Latest Error Logs
+7. Errors by Type
+```
 
 ---
 
 ## Files
 
 ```text
-apps/error-generator/
-└── README.md                                    # Dashboard instructions and queries
-
-observability/dashboards/
-└── error-generator-dashboard.json              # Exported OpenObserve dashboard
+apps/log-generator/README.md                     # Manual log-generator tests
+apps/error-generator/deployment.yaml             # Automatic 20-error spikes
+apps/error-generator/README.md                   # This file
+observability/dashboards/error-generator-dashboard.json
 ```
-
-The dashboard JSON keeps the existing filename for now so teammates can continue using the same file.
 
 ---
 
-## 1. Generate Test Logs
+## 1. Start the Generators
 
-Make sure Minikube, OpenObserve, and the OpenObserve Collector are already running.
+Make sure Minikube, OpenObserve, and the collector are already running.
 
-If you forgot how to set up the collector, go to:
+If you forgot the collector setup, go to:
 
 ```text
 observability/collector.md
 ```
 
-For deploying the `log-generator` and generating test logs, follow:
+For the shared `log-generator`, follow:
 
 ```text
 apps/log-generator/README.md
 ```
 
-The log generator supports test scenarios such as:
+Start/update both generators:
 
-```text
-WARN
-ERROR
-Error Spike
-Connectivity Failure
-Container Crash
+```powershell
+kubectl apply -f apps/log-generator/deployment.yaml      # Start/update log-generator
+kubectl apply -f apps/error-generator/deployment.yaml    # Start/update error-generator
 ```
 
-Run one scenario at a time and wait for it to complete before starting the next one.
+Check Pods:
+
+```powershell
+kubectl get pods -n stars
+```
+
+Watch the automatic error spikes:
+
+```powershell
+kubectl logs -n stars -l app=error-generator -f
+```
+
+Expected pattern:
+
+```text
+20 ERROR logs almost instantly
+wait 20 seconds
+20 ERROR logs almost instantly
+repeat forever (ง'̀-'́)ง
+```
 
 ---
 
 ## 2. Verify Logs in OpenObserve
 
-Open OpenObserve:
+Open:
 
 ```text
 http://localhost:5080
@@ -92,331 +120,251 @@ Go to:
 Logs >> default
 ```
 
-To show only logs from the log generator, use:
+Show logs from both generators:
 
 ```sql
-k8s_container_name = 'log-generator'
+(k8s_container_name = 'log-generator' OR k8s_container_name = 'error-generator')
 ```
 
-NOTE: put the SQL command in the textbox under the **Search | Visualize** tab, then click **Run query**.
-
-Explanation:
-
-```text
-k8s_container_name                              # Kubernetes container metadata field
-log-generator                                   # Name of the container we want to find
-```
-
-The logs should contain Kubernetes metadata similar to:
-
-```text
-k8s_container_name:  log-generator
-k8s_deployment_name: log-generator
-k8s_namespace_name:  stars
-k8s_pod_name:        log-generator-...
-```
-
-`k8s_container_name` is useful for filtering because the Pod name may change when Kubernetes recreates or restarts the Pod.
-
----
-
-## 3. Filter Only ERROR Logs
-
-Use this query in the OpenObserve Logs page:
+Show only ERROR logs from both:
 
 ```sql
-k8s_container_name = 'log-generator' AND body LIKE '%level=ERROR%'
+(k8s_container_name = 'log-generator' OR k8s_container_name = 'error-generator')
+AND body LIKE '%level=ERROR%'
 ```
 
-Explanation:
-
-```text
-k8s_container_name = 'log-generator'            # Only logs from log-generator
-AND                                               # Both conditions must be true
-body LIKE '%level=ERROR%'                        # Only ERROR-level logs
-```
-
-WARN and INFO logs should not appear.
+`k8s_container_name` is used because Pod names can change when Kubernetes recreates Pods.
 
 ---
 
-# STARS Error Monitoring Dashboard
+# Dashboard Queries
 
-The dashboard contains six panels:
-
-```text
-1. Total Errors
-2. Total Warnings
-3. Connectivity Failures
-4. Container Crashes
-5. Errors Over Time
-6. Latest Error Logs
-```
-
-The easiest way to use the dashboard is to import the exported JSON from:
+For each panel:
 
 ```text
-observability/dashboards/error-generator-dashboard.json
+Dashboard -> + -> Add Panel -> choose visualization -> Custom -> paste query -> Apply -> Save
 ```
 
-The steps below are still useful for understanding how each panel works or recreating the dashboard manually.
+Easy enough :>
 
 ---
 
-## 4. Total Errors
-
-Go to:
-
-```text
-OpenObserve -> Dashboards -> STARS Error Monitoring
-```
-
-Click the **+** button near the top of the dashboard, then select **Add Panel**.
-
-### Configure the Panel
+## 3. Total Errors
 
 ```text
 Visualization: 123 / Single Value
-Query Mode:    Custom
-Panel Name:    Total Errors
 ```
-
-Use this query:
 
 ```sql
-SELECT count(_timestamp) AS "y_axis_1"             -- Count all matching ERROR logs
-FROM "default"                                     -- Search the default log stream
-WHERE k8s_container_name = 'log-generator'         -- Only logs from log-generator
-  AND body LIKE '%level=ERROR%'                    -- Only logs with ERROR level
+SELECT count(_timestamp) AS "y_axis_1"                 -- Count matching ERROR logs
+FROM "default"                                         -- Search the default stream
+WHERE (
+        k8s_container_name = 'log-generator'           -- Include log-generator
+        OR
+        k8s_container_name = 'error-generator'         -- Include error-generator
+      )
+  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs
 ```
 
-Then:
-
-```text
-Apply -> Check that a number appears -> Save
-```
-
-This panel shows the total number of ERROR logs during the selected dashboard time range.
+Counts ERROR logs from both generators.
 
 ---
 
-## 5. Total Warnings
-
-Create another **123 / Single Value** panel.
-
-Use these settings:
+## 4. Total Warnings
 
 ```text
 Visualization: 123 / Single Value
-Query Mode:    Custom
-Panel Name:    Total Warnings
 ```
-
-Use this query:
 
 ```sql
-SELECT count(_timestamp) AS "y_axis_1"             -- Count all matching WARN logs
-FROM "default"                                     -- Search the default log stream
-WHERE k8s_container_name = 'log-generator'         -- Only logs from log-generator
-  AND body LIKE '%level=WARN%'                     -- Only WARN-level logs
+SELECT count(_timestamp) AS "y_axis_1"                 -- Count matching WARN logs
+FROM "default"                                         -- Search the default stream
+WHERE (
+        k8s_container_name = 'log-generator'           -- Include log-generator
+        OR
+        k8s_container_name = 'error-generator'         -- Include error-generator
+      )
+  AND body LIKE '%level=WARN%'                         -- Only WARN-level logs
 ```
 
-Then:
-
-```text
-Apply -> Check that a number appears -> Save
-```
-
-This panel shows WARN logs separately from ERROR logs.
+The current `error-generator` only creates ERROR logs, so WARN logs will normally come from `log-generator`.
 
 ---
 
-## 6. Connectivity Failures
-
-Create another **123 / Single Value** panel.
-
-Use these settings:
+## 5. Connectivity Failures
 
 ```text
 Visualization: 123 / Single Value
-Query Mode:    Custom
-Panel Name:    Connectivity Failures
 ```
-
-Use this query:
 
 ```sql
-SELECT count(_timestamp) AS "y_axis_1"             -- Count connectivity failure logs
-FROM "default"                                     -- Search the default log stream
-WHERE k8s_container_name = 'log-generator'         -- Only logs from log-generator
-  AND body LIKE '%level=ERROR%'                    -- Only ERROR-level logs
-  AND body LIKE '%scenario=connectivity%'          -- Only connectivity failure scenarios
+SELECT count(_timestamp) AS "y_axis_1"                 -- Count connectivity errors
+FROM "default"                                         -- Search the default stream
+WHERE (
+        k8s_container_name = 'log-generator'           -- Include log-generator
+        OR
+        k8s_container_name = 'error-generator'         -- Include error-generator
+      )
+  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs
+  AND body LIKE '%scenario=connectivity%'              -- Only connectivity scenarios
 ```
 
-Then:
-
-```text
-Apply -> Check that a number appears -> Save
-```
-
-Using `scenario=connectivity` means the panel works with different run IDs such as `network01`, `network02`, etc.
+Both generators can use `scenario=connectivity`, so both can appear here.
 
 ---
 
-## 7. Container Crashes
-
-Create another **123 / Single Value** panel.
-
-Use these settings:
+## 6. Container Crashes
 
 ```text
 Visualization: 123 / Single Value
-Query Mode:    Custom
-Panel Name:    Container Crashes
 ```
-
-Use this query:
 
 ```sql
-SELECT count(_timestamp) AS "y_axis_1"             -- Count container crash ERROR logs
-FROM "default"                                     -- Search the default log stream
-WHERE k8s_container_name = 'log-generator'         -- Only logs from log-generator
-  AND body LIKE '%level=ERROR%'                    -- Only ERROR-level logs
-  AND body LIKE '%scenario=crash%'                 -- Only crash scenario logs
+SELECT count(_timestamp) AS "y_axis_1"                 -- Count crash ERROR logs
+FROM "default"                                         -- Search the default stream
+WHERE (
+        k8s_container_name = 'log-generator'           -- Include log-generator
+        OR
+        k8s_container_name = 'error-generator'         -- Include error-generator
+      )
+  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs
+  AND body LIKE '%scenario=crash%'                     -- Only crash scenarios
 ```
 
-Then:
-
-```text
-Apply -> Check that a number appears -> Save
-```
-
-This panel counts crash scenarios separately from the other ERROR logs.
-
-The crash test is different from the normal ERROR tests because the container actually exits and Kubernetes restarts it.
+The current `error-generator` does not actually crash, so this panel will normally increase from the `log-generator` crash test.
 
 ---
 
-## 8. Errors Over Time
-
-Create another panel using a **Bar Chart**.
-
-Use these settings:
+## 7. Errors Over Time
 
 ```text
 Visualization: Bar Chart
-Query Mode:    Custom
-Panel Name:    Errors Over Time
+X-Axis:        x_axis_1
+Y-Axis:        y_axis_1
 ```
-
-Use this query:
 
 ```sql
 SELECT
-    histogram(_timestamp) AS "x_axis_1",        -- Group ERROR logs into time buckets
-    count(_timestamp) AS "y_axis_1"             -- Count how many ERROR logs are in each bucket
-FROM "default"                                  -- Search the default OpenObserve log stream
-WHERE k8s_container_name = 'log-generator'      -- Only logs from log-generator
-  AND str_match(body, 'level=ERROR')            -- Only logs that contain level=ERROR
-GROUP BY x_axis_1                               -- Create one count for each time bucket
-ORDER BY x_axis_1 ASC                           -- Show oldest time to newest time
+    histogram(_timestamp) AS "x_axis_1",               -- Group ERROR logs into time buckets
+    count(_timestamp) AS "y_axis_1"                    -- Count ERROR logs in each bucket
+FROM "default"                                         -- Search the default stream
+WHERE (
+        k8s_container_name = 'log-generator'           -- Include log-generator
+        OR
+        k8s_container_name = 'error-generator'         -- Include error-generator
+      )
+  AND str_match(body, 'level=ERROR')                   -- Only ERROR-level logs
+GROUP BY x_axis_1                                      -- One count per time bucket
+ORDER BY x_axis_1 ASC                                  -- Oldest to newest
 ```
 
-Configure the fields as:
-
-```text
-X-Axis: x_axis_1
-Y-Axis: y_axis_1
-```
-
-Then:
-
-```text
-Apply -> Check that the bar chart appears -> Save
-```
-
-This panel is useful for seeing sudden increases in errors.
-
-For example, an `error-spike` test should appear as a large bar because many ERROR logs happen at about the same time.
+The automatic `error-generator` should show clear bars around 20 because each spike happens almost instantly.
 
 ---
 
-## 9. Latest Error Logs
-
-Create another panel using a **Table**.
-
-Use these settings:
+## 8. Latest Error Logs
 
 ```text
 Visualization: Table
-Query Mode:    Custom
-Panel Name:    Latest Error Logs
+First Column:  time
+Other Columns: error
 ```
-
-Use this query:
 
 ```sql
-SELECT to_timestamp(_timestamp / 1000000) AS "time",     -- Convert timestamp to readable time
-       body AS "error"                                   -- Show the actual error message
-FROM "default"                                           -- Search the default log stream
-WHERE k8s_container_name = 'log-generator'               -- Only logs from log-generator
-  AND body LIKE '%level=ERROR%'                          -- Only ERROR logs
-ORDER BY _timestamp DESC                                 -- Newest errors first
-LIMIT 50                                                 -- Only show the latest 50 errors
+SELECT to_timestamp(_timestamp / 1000000) AS "time",     -- Readable timestamp
+       body AS "error"                                   -- Actual ERROR message
+FROM "default"                                           -- Search the default stream
+WHERE (
+        k8s_container_name = 'log-generator'             -- Include log-generator
+        OR
+        k8s_container_name = 'error-generator'           -- Include error-generator
+      )
+  AND body LIKE '%level=ERROR%'                          -- Only ERROR-level logs
+ORDER BY _timestamp DESC                                 -- Newest first
+LIMIT 50                                                 -- Latest 50 ERROR logs
 ```
 
-After applying the query, configure the table as:
-
-```text
-First Column:   time
-Other Columns:  error
-```
-
-Then:
-
-```text
-Apply -> Check that the timestamp and error messages appear -> Save
-```
-
-The newest error should appear at the top of the table.
-
-The limit is set to 50 so a full error spike can still be viewed together with other recent errors.
+Newest errors should appear at the top.
 
 ---
 
-## 10. Why Custom SQL Is Used? (._.)?
+## 9. Errors by Type
 
-The normal OpenObserve Dashboard Builder can work for simple panels, but Custom SQL gives more direct control over what each panel counts and displays.
+This panel shows the 5 automatic error types from `error-generator`.
 
-For example:
+```text
+Visualization: Bar Chart
+X-Axis:        x_axis_1
+Y-Axis:        y_axis_1
+```
 
 ```sql
-SELECT count(_timestamp)
+SELECT
+    CASE
+        WHEN body LIKE '%scenario=authentication%' THEN 'Authentication'
+        WHEN body LIKE '%scenario=database%'       THEN 'Database'
+        WHEN body LIKE '%scenario=connectivity%'   THEN 'Connectivity'
+        WHEN body LIKE '%scenario=dependency%'     THEN 'Dependency'
+        WHEN body LIKE '%scenario=service%'        THEN 'Service'
+    END AS "x_axis_1",                              -- Error type
+
+    count(_timestamp) AS "y_axis_1"                 -- Count each type
+
 FROM "default"
-WHERE k8s_container_name = 'log-generator'
-  AND body LIKE '%level=ERROR%'
+
+WHERE k8s_container_name = 'error-generator'       -- Only automatic error-generator logs
+  AND body LIKE '%level=ERROR%'                    -- Only ERROR logs
+  AND (
+       body LIKE '%scenario=authentication%'
+       OR body LIKE '%scenario=database%'
+       OR body LIKE '%scenario=connectivity%'
+       OR body LIKE '%scenario=dependency%'
+       OR body LIKE '%scenario=service%'
+  )
+
+GROUP BY x_axis_1                                  -- Group by error type
+ORDER BY y_axis_1 DESC                             -- Highest count first
 ```
 
-The filtering order is:
+A complete spike should be around:
 
 ```text
-default log stream >> log-generator logs only >> ERROR logs only >> count/display matching logs
+Authentication    4
+Database          4
+Connectivity      4
+Dependency        4
+Service           4
+-------------------
+Total            20
 ```
 
-Custom SQL is also useful for filtering specific scenarios such as:
+This panel intentionally looks only at `error-generator` because these five scenarios belong to the automatic spike generator.
+
+---
+
+## 10. Why Custom SQL? (._.)?
+
+Custom SQL makes it easier to control exactly which generator, log level, and scenario each panel uses.
+
+Basically:
 
 ```text
-scenario=connectivity
-scenario=crash
+default stream
+      |
+log-generator + error-generator
+      |
+filter level/scenario
+      |
+count/display logs
 ```
 
-and for formatting the Latest Error Logs table.
+Less magic, less confusion :>
 
 ---
 
 ## 11. Dashboard Time Range
 
-For testing, you can use:
+For testing, use something like:
 
 ```text
 Past 5 Minutes
@@ -424,75 +372,64 @@ Past 15 Minutes
 Past 1 Hour
 ```
 
-The dashboard only counts logs inside the selected time range.
-
-For example, if you generate:
+The automatic generator creates about:
 
 ```text
-1 normal ERROR
-20 error-spike ERROR logs
-1 connectivity ERROR
+20 errors every 20 seconds
+~60 errors per minute
 ```
 
-while they are all inside the selected time range, you may see:
+The exact number will move up/down as logs enter and leave the selected time range. Manual `log-generator` tests can also add extra errors.
 
-```text
-Total Errors               22
-Connectivity Failures       1
-```
-
-The error spike will also be visible in **Errors Over Time** as a large bar.
-
-If older test logs move outside the selected time range, the numbers will decrease or return to `0`.
-
-This is normal :>
+This is normal, dont panic lol.
 
 ---
 
-## 12. Stop or Remove the Log Generator
+## 12. Stop / Restart
 
-For stopping, restarting, or removing the log generator, follow:
+For `log-generator`, follow:
 
 ```text
 apps/log-generator/README.md
 ```
 
-This keeps the log-generator instructions in one place instead of repeating them here.
+Stop automatic spikes:
+
+```powershell
+kubectl scale deployment error-generator -n stars --replicas=0
+```
+
+Start them again:
+
+```powershell
+kubectl scale deployment error-generator -n stars --replicas=1
+```
+
+Remove the error-generator from Kubernetes:
+
+```powershell
+kubectl delete -f apps/error-generator/deployment.yaml
+```
+
+**DONT WORRIES** ( ´ ▽ ` )b
+
+This only removes the Kubernetes Deployment/Pod. It does **not** delete `deployment.yaml` from the repo.
 
 ---
 
 ## Summary
 
-The complete flow is:
-
 ```text
-log-generator
-      |
-      | INFO / WARN / ERROR / failure test logs
-      v
-Kubernetes logs
-      |
-      v
-OpenObserve Collector
-      |
-      v
-OpenObserve default stream
-      |
-      v
-STARS Error Monitoring Dashboard
+log-generator -----------------\
+                                > OpenObserve Collector -> default stream -> STARS Error Monitoring
+error-generator ---------------/
 ```
 
-The dashboard monitors:
-
 ```text
-Total Errors             # Total ERROR-level logs
-Total Warnings           # Total WARN-level logs
-Connectivity Failures    # Connectivity scenario ERROR logs
-Container Crashes        # Crash scenario ERROR logs
-Errors Over Time         # ERROR count grouped over time
-Latest Error Logs        # Latest actual ERROR messages
+log-generator    = manual WARN / ERROR / connectivity / crash tests
+error-generator  = automatic 20-error spikes every 20 seconds
 ```
 
-The `error-spike` test is still useful even without its own panel because it increases **Total Errors** and appears clearly in **Errors Over Time**.
+The dashboard combines both generators, while **Errors by Type** focuses only on the 5 automatic `error-generator` scenarios.
 
-You can also customize the dashboard panels by resizing, editing, or moving them around.
+You can resize or move the dashboard panels however you want. Make it pretty :>
