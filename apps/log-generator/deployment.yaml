@@ -29,14 +29,81 @@ spec:
 
           args:
             - |
+              set -eu
               trap 'exit 0' TERM INT
-
+              CONTROL_DIR=/tmp/stars-control
+              export CONTROL_DIR
+              mkdir -p "$CONTROL_DIR"
+              # Requests are ephemeral. No incident automatically repeats after restart.
+              rm -f "$CONTROL_DIR"/*.ready "$CONTROL_DIR"/request.*
+              cat > /tmp/stars-trigger <<'TRIGGER'
+              #!/bin/sh
+              set -eu
+              if [ "$#" -ne 2 ]; then
+                echo "Usage: /tmp/stars-trigger warn|error|error-spike|connectivity|crash RUN_ID" >&2
+                exit 2
+              fi
+              case "$1" in warn|error|error-spike|connectivity|crash) ;; *) echo 'Unknown scenario' >&2; exit 2;; esac
+              case "$2" in ''|*[!A-Za-z0-9_-]*) echo 'RUN_ID must use letters, digits, underscores or hyphens' >&2; exit 2;; esac
+              [ "${#2}" -le 64 ] || { echo 'RUN_ID must be at most 64 characters' >&2; exit 2; }
+              CONTROL_DIR=/tmp/stars-control
+              request=$(mktemp "$CONTROL_DIR/request.XXXXXX")
+              trap 'rm -f "$request"' EXIT
+              printf '%s %s\n' "$1" "$2" > "$request"
+              # Atomic publication: PID 1 never reads a partially written command.
+              mv "$request" "$request.ready"
+              printf 'Queued scenario=%s run_id=%s\n' "$1" "$2"
+              TRIGGER
+              chmod 700 /tmp/stars-trigger
+              log() {
+                printf '%s level=%s service=log-generator scenario=%s run_id=%s message="%s"\n' \
+                  "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$2" "$3" "$4"
+              }
+              log INFO startup none 'STARS generator started'
               COUNT=1
-
+              NEXT_HEARTBEAT=0
               while true; do
-                echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') level=INFO service=log-generator message=\"STARS heartbeat\" count=$COUNT"
-                COUNT=$((COUNT + 1))
-
-                sleep 5 &
+                NOW=$(date +%s)
+                if [ "$NOW" -ge "$NEXT_HEARTBEAT" ]; then
+                  printf '%s level=INFO service=log-generator message="STARS heartbeat" count=%s\n' \
+                    "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$COUNT"
+                  COUNT=$((COUNT + 1))
+                  NEXT_HEARTBEAT=$((NOW + 5))
+                fi
+                # Process at most one request per tick, keeping heartbeat checks responsive.
+                for request in "$CONTROL_DIR"/*.ready; do
+                  [ -f "$request" ] || continue
+                  read -r SCENARIO RUN_ID < "$request"
+                  rm -f "$request"
+                  log INFO "$SCENARIO" "$RUN_ID" 'Scenario started'
+                  case "$SCENARIO" in
+                    warn) log WARN "$SCENARIO" "$RUN_ID" 'On-demand warning; synthetic degraded condition' ;;
+                    error) log ERROR "$SCENARIO" "$RUN_ID" 'On-demand error; synthetic application failure' ;;
+                    error-spike)
+                      N=1
+                      while [ "$N" -le 20 ]; do
+                        log ERROR "$SCENARIO" "$RUN_ID" "Injected application error $N of 20"
+                        N=$((N + 1))
+                      done
+                      ;;
+                    connectivity)
+                      # Closed loopback port in this single-container pod: no external target.
+                      if wget -q -T 2 -O /dev/null http://127.0.0.1:1/ 2>/dev/null; then
+                        log WARN "$SCENARIO" "$RUN_ID" 'Unexpected HTTP success; connectivity test invalid'
+                      else
+                        RC=$?
+                        log ERROR "$SCENARIO" "$RUN_ID" "Controlled connection failure target=127.0.0.1:1 wget_exit=$RC"
+                      fi
+                      ;;
+                    crash)
+                      log ERROR "$SCENARIO" "$RUN_ID" 'Injected container crash; exiting with code 42'
+                      exit 42
+                      ;;
+                  esac
+                  log INFO "$SCENARIO" "$RUN_ID" 'Scenario completed'
+                  break
+                done
+                sleep 1 &
                 wait $!
               done
+
