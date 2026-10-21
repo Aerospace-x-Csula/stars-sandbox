@@ -1,0 +1,18 @@
+# Code owners for stars-sandbox
+# The last matching line wins. A folder's owner must approve PRs that change it.
+
+# Default: team leads
+*                    @DEV-KYO @dearcosmoises2-bot
+
+# Team folders: sub-leads
+/infrastructure/     @rustomjdee
+/apps/               @Eric3871
+/observability/      @dearcosmoises2-bot
+/ai/                 @jaydendarling225-tech
+/automation/         @Angel-H4123
+/docs/               @LiamJPeak
+
+# Repo files
+/README.md           @LiamJPeak
+/CONTRIBUTING.md     @DEV-KYO @dearcosmoises2-bot
+/.github/            @DEV-KYO @dearcosmoises2-bot
