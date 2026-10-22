@@ -66,6 +66,6 @@ As implementation stabilizes, this architecture documentation should expand to c
 
 ## Related Documents
 
-- [onboarding/local-setup.md](onboarding/local-setup.md)
-- [README.md](README.md)
-- [observability/install.md](observability/install.md)
+- [local-setup.md](../onboarding/local-setup.md)
+- [README.md](../README.md)
+- [install.md](../../observability/install.md)
