@@ -5,9 +5,9 @@ How a team's work gets from its team branch into `dev`, through the wargame, and
 | Who | What they do |
 |---|---|
 | A team member | Opens the team PR into `dev` |
-| POC (release owner) | Submits the release request and runs its tests at the wargame |
 | Teammates | Review and comment |
-| Sub-lead (code owner) | Approves |
+| Sub-lead (code owner) | Approves, and submits the release request |
+| POC (named in the release request) | Runs its tests at the wargame |
 | Jonas or Moises | Final approval, merge, and wargame |
 
 The PR and the release request must be ready by the Sunday before the biweekly Monday leads meeting. That meeting is the wargame.
@@ -31,12 +31,12 @@ A team member opens the PR, not the sub-lead. GitHub doesn't let the person who 
 
 GitHub adds your sub-lead as a reviewer automatically. If the PR changes another team's folder, that team's sub-lead is added too and must also approve.
 
-## 2. Submit the release request (POC)
+## 2. Submit the release request (sub-lead)
 
-One release request per component folder your PR changes.
+One request per team per wargame, submitted on Sunday once the final PR is open. Nothing to release? Skip it; your team sits out that wargame.
 
 1. Go to **Issues**, click **New issue**, and choose **Release Request**.
-2. Fill in every field. Paste your PR link so the leads can see exactly what's changing.
+2. Fill in every field. Paste the PR link so the leads can see exactly what's changing. For **POC**, name the teammate who'll run the tests at the wargame; it can be you or whoever wrote the change.
 3. Click **Create**.
 
 Two fields matter most at the wargame:

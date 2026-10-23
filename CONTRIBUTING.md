@@ -94,7 +94,7 @@ We follow the STARS release process: changes are tested together on `dev` at a w
 
 ### Release request
 
-Every team PR comes with a release request: **Issues → New issue → Release Request**. One per component folder that changed. It covers:
+Each team submits one release request per wargame: **Issues → New issue → Release Request**. The sub-lead submits it on Sunday, once the team's final PR is open. Nothing to release? No request; your team skips that wargame. It covers:
 
 - POC: who owns the release and runs its tests at the wargame
 - Version, PR link, and issues

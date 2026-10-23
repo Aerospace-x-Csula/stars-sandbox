@@ -1,12 +1,12 @@
 name: Release Request
-description: Submit a component release for the next wargame. One per component folder that changed.
+description: Submit your team's release for the next wargame. One per team per wargame.
 title: "Release: <component> v<version>"
 labels: ["release-request"]
 body:
   - type: markdown
     attributes:
       value: |
-        Due **Sunday**, with your team PR into `dev`. Leads review it at the Monday wargame. See the Releases section of [CONTRIBUTING.md](https://github.com/Aerospace-x-Csula/stars-sandbox/blob/dev/CONTRIBUTING.md).
+        One per team per wargame. The sub-lead submits it on **Sunday**, once the team's final PR into `dev` is open. Leads review it at the Monday wargame. See the Releases section of [CONTRIBUTING.md](https://github.com/Aerospace-x-Csula/stars-sandbox/blob/dev/CONTRIBUTING.md).
 
   - type: input
     id: poc
