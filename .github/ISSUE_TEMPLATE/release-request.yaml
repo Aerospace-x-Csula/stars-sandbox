@@ -1,0 +1,140 @@
+name: Release Request
+description: Submit your team's release for the next wargame. One per team per wargame.
+title: "Release: <component> v<version>"
+labels: ["release-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One per team per wargame. The sub-lead submits it on **Sunday**, once the team's final PR into `dev` is open. Leads review it at the Monday wargame. See the Releases section of [CONTRIBUTING.md](https://github.com/Aerospace-x-Csula/stars-sandbox/blob/dev/CONTRIBUTING.md).
+
+  - type: input
+    id: poc
+    attributes:
+      label: POC
+      description: Who owns this release and runs its tests at the wargame.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - infrastructure
+        - apps
+        - observability
+        - ai
+        - automation
+        - docs
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "Bug fix: bump the last number. New feature or breaking change: bump the middle number."
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: pull-request
+    attributes:
+      label: Pull request
+      placeholder: "https://github.com/Aerospace-x-Csula/stars-sandbox/pull/30"
+    validations:
+      required: true
+
+  - type: input
+    id: issues
+    attributes:
+      label: Issues
+      placeholder: "#12, #15"
+
+  - type: dropdown
+    id: risk-level
+    attributes:
+      label: Risk
+      description: "Low: small change, like a README or dashboard tweak. High: something other components rely on."
+      options:
+        - Low
+        - Medium
+        - High
+    validations:
+      required: true
+
+  - type: textarea
+    id: risk-impact
+    attributes:
+      label: Worst case
+      description: If this goes wrong, what breaks? Keep it short.
+    validations:
+      required: true
+
+  - type: textarea
+    id: breaking-changes
+    attributes:
+      label: Breaking changes
+      description: Will anything that used to work stop working, or will other teams need to change their setup?
+      value: "None"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Other components, services, or tools this release needs.
+      value: "None"
+
+  - type: checkboxes
+    id: tested
+    attributes:
+      label: Tested
+      options:
+        - label: It works on my own fresh cluster (`minikube delete`, then followed the README)
+          required: true
+
+  - type: textarea
+    id: acceptance-tests
+    attributes:
+      label: Acceptance tests
+      description: The steps you'll rerun at the wargame. Another teammate should be able to follow them.
+      value: |
+        **Test 1: the change works**
+        What it checks:
+        Steps:
+        1.
+        2.
+        Setup and cleanup: None
+
+        **Test 2: existing features still work**
+        What it checks:
+        Steps:
+        1.
+        2.
+        Setup and cleanup: None
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Proof
+      description: Drag in a screenshot or paste the output that shows it working.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback
+      description: Copy-and-paste commands to go back to the last version, run from the repo root. Write them for someone who isn't you.
+      render: shell
+      value: |
+        git checkout <component>/v<last-version> -- <component>/
+        # then reinstall with the component README:
+    validations:
+      required: true
