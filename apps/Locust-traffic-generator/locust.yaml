@@ -1,0 +1,38 @@
+# locust.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust
+  namespace: stars
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: locust }
+  template:
+    metadata:
+      labels: { app: locust }
+    spec:
+      containers:
+        - name: locust
+          image: locustio/locust:2.32.0   # pin a version you've checked
+          args: ["-f", "/mnt/locust/locustfile.py", "--class-picker", "--host", "http://stars-app.stars.svc.cluster.local"]
+          ports:
+            - containerPort: 8089
+          volumeMounts:
+            - name: locustfile
+              mountPath: /mnt/locust
+      volumes:
+        - name: locustfile
+          configMap:
+            name: locustfile
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust
+  namespace: stars
+spec:
+  selector: { app: locust }
+  ports:
+    - port: 8089
+      targetPort: 8089
