@@ -1,21 +1,22 @@
 # Pull Request Guide
 
-How a team's work gets from its team branch into `main`. The full rules are in [CONTRIBUTING.md](https://github.com/Aerospace-x-Csula/stars-sandbox/blob/main/CONTRIBUTING.md).
+How a team's work gets from its team branch into `dev`, through the wargame, and into a release on `main`. The full rules are in [CONTRIBUTING.md](https://github.com/Aerospace-x-Csula/stars-sandbox/blob/dev/CONTRIBUTING.md).
 
 | Who | What they do |
 |---|---|
-| A team member | Opens the team PR |
+| A team member | Opens the team PR into `dev` |
 | Teammates | Review and comment |
-| Sub-lead (code owner) | Approves |
-| Jonas or Moises | Final approval and merge |
+| Sub-lead (code owner) | Approves, and submits the release request |
+| POC (named in the release request) | Runs its tests at the wargame |
+| Jonas or Moises | Final approval, merge, and wargame |
 
-The PR must be ready by the Sunday before the biweekly Monday leads meeting. It merges at that meeting.
+The PR and the release request must be ready by the Sunday before the biweekly Monday leads meeting. That meeting is the wargame.
 
 ## 1. Open the team PR (team member)
 
 A team member opens the PR, not the sub-lead. GitHub doesn't let the person who opened a PR approve it, and the sub-lead's approval is required.
 
-1. Make sure your team branch is up to date with `main` (see step 4).
+1. Make sure your team branch is up to date with `dev` (see step 6).
 2. On the repo's main page, choose your team branch in the **Branch** menu.
 
    ![Branch menu on the repo's main page](images/branch-dropdown.png)
@@ -24,13 +25,26 @@ A team member opens the PR, not the sub-lead. GitHub doesn't let the person who 
 
    ![Compare & pull request banner](images/pull-request-compare-pull-request.png)
 
-4. Set **base** to `main` and **compare** to your team branch.
+4. Check that **base** is `dev` and **compare** is your team branch. `dev` is the default, so base is usually already set. Never use `main`.
 5. Fill in the PR template.
 6. Click **Create pull request**.
 
 GitHub adds your sub-lead as a reviewer automatically. If the PR changes another team's folder, that team's sub-lead is added too and must also approve.
 
-## 2. Review and approve (teammates and sub-lead)
+## 2. Submit the release request (sub-lead)
+
+One request per team per wargame, submitted on Sunday once the final PR is open. Nothing to release? Skip it; your team sits out that wargame.
+
+1. Go to **Issues**, click **New issue**, and choose **Release Request**.
+2. Fill in every field. Paste the PR link so the leads can see exactly what's changing. For **POC**, name the teammate who'll run the tests at the wargame; it can be you or whoever wrote the change.
+3. Click **Create**.
+
+Two fields matter most at the wargame:
+
+- **Acceptance tests:** the steps you'll rerun. Test them on your own fresh cluster first (`minikube delete`, then follow your README).
+- **Rollback:** commands someone else can copy and paste to undo your release. Write them for a lead who doesn't know your code.
+
+## 3. Review and approve (teammates and sub-lead)
 
 1. Open the PR and click **Files changed**.
 
@@ -52,26 +66,34 @@ GitHub adds your sub-lead as a reviewer automatically. If the PR changes another
 
 An approval only counts if you click the button. A new commit clears all approvals, so approve again after changes.
 
-## 3. Final approval and merge (Jonas or Moises)
+## 4. Final approval and merge into `dev` (Jonas or Moises)
 
-The merge button unlocks after 2 approvals, including the sub-lead's. Only Jonas and Moises can merge. If one of them wrote code in the PR or approved it as sub-lead, the other one merges.
+This happens at the Monday leads meeting. The merge button unlocks after 2 approvals, including the sub-lead's. If one lead wrote code in the PR or approved it as sub-lead, the other one merges.
 
-1. Approve the PR (step 2) so the final approval is on record.
-2. At the bottom of the PR, open the merge menu and choose **Create a merge commit**. Don't squash: team branches keep being used after each release.
+1. Read the team's release request.
+2. Approve the PR (step 3) so the final approval is on record.
+3. At the bottom of the PR, open the merge menu and choose **Create a merge commit**. Don't squash: team branches keep being used after each release.
 
    ![Merge options menu](images/merge-pull-request-options.png)
 
-3. Click **Merge pull request**, then **Confirm merge**.
-4. Don't click **Delete branch**. The team branch stays.
+4. Click **Merge pull request**, then **Confirm merge**.
+5. Don't click **Delete branch**. The team branch stays.
 
-## 4. After each release: update your team branch
+## 5. Wargame (leads and POCs)
+
+1. A lead deploys `dev` on a fresh cluster.
+2. Each POC runs the acceptance tests from their release request.
+3. **Pass:** the leads open a PR from `dev` into `main`, merge it, and tag the release (see Versions in CONTRIBUTING.md).
+4. **Fail:** the leads revert that team's merge on `dev` and tell the sub-lead. The team fixes it and brings it to the next wargame.
+
+## 6. After each wargame: update your team branch
 
 Run from the repo root:
 
 ```
 git checkout <team-branch>
 git pull
-git pull origin main
+git pull origin dev
 git push
 ```
 

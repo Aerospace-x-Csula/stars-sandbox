@@ -11,7 +11,7 @@ Read this before you push. If something here is unclear or wrong, open a PR to f
 | `observability/` | Observability | OpenObserve, collector, dashboards |
 | `automation/` | Automation & Self-Healing | Failure injection and recovery steps |
 | `ai/` | AI/ML | Anomaly detection, AI settings, and test results |
-| `documentation/` | Documentation & Release | Architecture, onboarding, runbooks, release, and handoff documentation |
+| `docs/` | Documentation & Release | Architecture, onboarding, runbooks, release, and handoff documentation |
 
 New top-level folder = a PR that adds a row here.
 
@@ -46,7 +46,13 @@ New top-level folder = a PR that adds a row here.
 
 ## Branches
 
-Each team has one branch. Your team commits there, not to `main`.
+| Branch | What it is |
+|---|---|
+| Team branch | Where your team works day to day |
+| `dev` | Team PRs merge here and get tested together at the wargame. This is the default branch |
+| `main` | Production. Only changes when a wargame passes, by a PR from `dev` |
+
+Each team has one branch. Your team commits there, never to `dev` or `main`.
 
 | Team | Branch |
 |---|---|
@@ -59,23 +65,23 @@ Each team has one branch. Your team commits there, not to `main`.
 
 - Run `git pull` before you start working and before you push
 - Never force-push a team branch
-- After each release, update your team branch from `main` before starting new work:
+- After each wargame, update your team branch from `dev` before starting new work:
 
 ```
 git checkout <team-branch>
 git pull
-git pull origin main
+git pull origin dev
 git push
 ```
 
 ## Commits and PRs
 
 - Commits use [Conventional Commits](https://www.conventionalcommits.org/) and link the issue: `feat: add collector values (Refs #12)`
-- Never push to `main`. Open a PR
-- One PR per team every two weeks, from your team branch to `main`. It can cover several components
+- Never push to `dev` or `main`. Open a PR
+- One PR per team every two weeks, from your team branch to `dev`. It can cover several components
 - A team member opens the PR, not the sub-lead. GitHub won't let you approve your own PR
-- The PR must be ready by Sunday, before the Monday leads meeting
-- Your team helps review. Your sub-lead approves, then Jonas or Moises gives final approval and merges
+- The PR and your release request must be ready by Sunday, before the Monday leads meeting
+- Your team helps review. Your sub-lead approves, then Jonas or Moises gives final approval and merges. `dev` needs 2 approvals, including the code owner
 - Before opening the PR, confirm that:
   - [ ] Names follow this file
   - [ ] Every component you changed has its README updated
@@ -84,11 +90,51 @@ git push
 
 ## Releases
 
+We follow the STARS release process: changes are tested together on `dev` at a wargame before they reach `main`.
+
+### Release request
+
+Each team submits one release request per wargame: **Issues → New issue → Release Request**. The sub-lead submits it on Sunday, once the team's final PR is open. Nothing to release? No request; your team skips that wargame. It covers:
+
+- POC: who owns the release and runs its tests at the wargame
+- Version, PR link, and issues
+- Risk (Low / Medium / High) and the worst case if it goes wrong
+- Breaking changes and anything it depends on
+- Acceptance tests: proof it worked on your own fresh cluster, and the steps to rerun it
+- Rollback: copy-and-paste commands to go back to the last version
+
+### Wargame
+
 Every two weeks, at the Monday leads meeting:
 
-1. Leads go over blockers and each team's PR
-2. Approved PRs merge into `main`
-3. `main` is tagged as the release: `v0.1.0`, `v0.2.0`, and so on
-4. Until Friday, only fixes go into `main`. That Friday we show the release to Aerospace
+1. Leads go over blockers, each team's PR, and its release request
+2. Approved PRs merge into `dev`
+3. A lead deploys `dev` on a fresh cluster. Each POC runs their acceptance tests
+4. **Pass:** `dev` merges into `main` and is tagged. **Fail:** that team's merge is reverted on `dev`, and the team brings the fix to the next wargame
+5. That Friday we show the release to Aerospace
 
 Documentation & Release writes the release notes, using `docs/release/release-checklist.md`.
+
+### Versions
+
+Versions are `MAJOR.MINOR.PATCH`. We stay at `0.x` until the handoff release, `1.0.0`.
+
+| Change | Bump | Example |
+|---|---|---|
+| Bug fix | Patch | `0.1.0` → `0.1.1` |
+| New feature or breaking change | Minor | `0.1.0` → `0.2.0` |
+
+Two kinds of tags, both made by the leads after a wargame passes:
+
+- **Component:** `<folder>/v<version>`, for example `observability/v0.2.0`. One for each component that released
+- **Platform:** `v<version>` on `main`, for example `v0.2.0`. One per wargame
+
+### Rollback
+
+To put one component back to its last version, run from the repo root, then reinstall it with its README:
+
+```
+git checkout observability/v0.1.0 -- observability/
+```
+
+To put everything back, deploy the last platform tag, for example `v0.1.0`.
