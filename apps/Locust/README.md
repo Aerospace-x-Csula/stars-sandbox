@@ -2,6 +2,8 @@
 
 Generate HTTP traffic against an application running in the `stars` namespace of a local minikube cluster. Locust runs **inside** the cluster, so it reaches the app through cluster DNS with no ingress needed.
 
+Currently, powershell commands still aren't tested.
+
 It simulates four scenarios:
 
 | Scenario | What it does |
