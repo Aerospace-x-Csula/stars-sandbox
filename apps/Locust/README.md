@@ -28,7 +28,7 @@ Every command here works the same in macOS Terminal (zsh or bash), Windows Power
 
 - Paths use forward slashes (`apps/Locust/locust.yaml`), which kubectl accepts on Windows.
 - One command per line. There are no `\` line continuations, `&&`, `grep` or `export`, which differ between shells.
-- `locust/locustfile.py` is ASCII-only, so PowerShell 5.1 can pipe it without corrupting characters. Keep it that way when you edit it.
+- `apps/Locust/locustfile.py` is ASCII-only, so PowerShell 5.1 can pipe it without corrupting characters. Keep it that way when you edit it.
 - Stop a running `port-forward` or `logs -f` with Ctrl+C on both systems.
 
 ## 1. Prepare the cluster
@@ -45,7 +45,7 @@ The metrics-server addon lets you watch load with `kubectl top`. `apps/Locust/st
 
 ## 2. The locustfile
 
-`locust/locustfile.py` has one user class per traffic pattern:
+`apps/Locust/locustfile.py` has one user class per traffic pattern:
 
 | Class | Behavior |
 |---|---|
@@ -62,14 +62,20 @@ Every run also gets a `run_id` (random, 8 characters) and a `scenario` label. Se
 Optional: to send run events and request logs to OpenObserve, first create a Secret (change the values to match your OpenObserve):
 
 ```bash
-kubectl -n stars create secret generic openobserve-credentials --from-literal=url=http://openobserve-openobserve-standalone.stars.svc.cluster.local:5080/api/default --from-literal=user=root@example.com --from-literal=password="Complexpass#123"
+kubectl -n stars create secret generic openobserve-credentials --from-literal=url=http://openobserve-openobserve-standalone.stars.svc.cluster.local:5080/api/default --from-literal=user=root@example.com --from-literal=password="<Password>"
 ```
+
+POWERSHELL version of secret:
+```bash
+kubectl -n stars create secret generic openobserve-credentials --from-literal=url=http://openobserve-openobserve-standalone.stars.svc.cluster.local:5080/api/default --from-literal=user=root@example.com --from-literal=password='<Password>'
+```
+
 Skip this if you aren't using OpenObserve. Locust works without it. If you create the Secret later, run `kubectl -n stars rollout restart deployment/locust`.
 
-Create (or update) the ConfigMap from `locust/locustfile.py`, then deploy:
+Create (or update) the ConfigMap from `apps/Locust/locustfile.py`, then deploy:
 
 ```bash
-kubectl -n stars create configmap locustfile --from-file=locust/locustfile.py --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n stars create configmap locustfile --from-file=apps/Locust/locustfile.py --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f apps/Locust/locust.yaml
 kubectl -n stars rollout status deployment/locust
 kubectl -n stars port-forward svc/locust 8089:8089
@@ -133,7 +139,8 @@ kubectl -n stars delete job locust-mixed --ignore-not-found
 kubectl apply -f apps/Locust/jobs/mixed.yaml
 kubectl -n stars logs -f job/locust-mixed
 ```
-#Make sure to delete any jobs you've created once you're done.
+Make sure to delete any jobs you've created once you're done:
+
 ```bash
 kubectl -n stars delete job locust-normal --ignore-not-found
 kubectl -n stars delete job locust-high-traffic --ignore-not-found
@@ -144,7 +151,7 @@ kubectl -n stars delete job locust-mixed --ignore-not-found
 
 To change the number of users, ramp up or duration, edit `-u`, `-r` and `-t` in the Job file. The `failing` and `mixed` Jobs pass `--exit-code-on-error 0`, because failures are expected there and shouldn't mark the Job as failed.
 
-After you edit `locust/locustfile.py`, rerun the ConfigMap command from step 3. Jobs pick up the new file when they start; for the web UI also run `kubectl -n stars rollout restart deployment/locust`.
+After you edit `apps/Locust/locustfile.py`, rerun the ConfigMap command from step 3. Jobs pick up the new file when they start; for the web UI also run `kubectl -n stars rollout restart deployment/locust`.
 
 ## 5. Simulate failures in the app itself
 

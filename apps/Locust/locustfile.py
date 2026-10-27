@@ -22,6 +22,20 @@ import uuid
 import gevent
 import requests
 from locust import HttpUser, between, events, task
+from datetime import datetime, timezone
+
+SERVICE = os.getenv("SERVICE_NAME", "locust")
+
+
+def log_lifecycle(event, message):
+    # Plain print, not logging: Locust's logger adds its own prefix,
+    # which would break the required line format.
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    print('{} level=INFO service={} event={} message="{}"'.format(
+        ts, SERVICE, event, message), flush=True)
+
+
+log_lifecycle("startup", "Process started")
 
 log = logging.getLogger("stars.loadtest")
 
@@ -90,6 +104,7 @@ def _event(name, **fields):
 @events.init.add_listener
 def on_init(environment, **kwargs):
     gevent.spawn(_flush_loop)
+    log_lifecycle("ready", "Ready to serve")
 
 
 @events.test_start.add_listener
