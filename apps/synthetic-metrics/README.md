@@ -55,11 +55,13 @@ Wait until `READY` shows `1/1` (a few seconds). Then watch the output:
 kubectl logs -n stars -l app=synthetic-metrics -f
 ```
 
-You should see a `Started` line, then one new line every 5 seconds:
+You should see a startup line, a settings line, a ready line, then one new metrics line every 5 seconds:
 
 ```text
-... level=INFO ... message="Started interval_s=5 cpu_spike=every 5 min memory_leak=minutes 35-50 of each hour"
-... level=INFO service=synthetic-metrics scenario=metrics host=synthetic-host-1 cpu_percent=24.71 memory_percent=54.93
+... level=INFO service=synthetic-metrics run_id=metrics01 event=startup message="Process started"
+... level=INFO ... run_id=metrics01 message="Settings interval_s=5 anomalies=on cpu_spike=every 5 min memory_leak=minutes 35-50 of each hour"
+... level=INFO service=synthetic-metrics scenario=metrics host=synthetic-host-1 run_id=metrics01 cpu_percent=24.71 memory_percent=54.93
+... level=INFO service=synthetic-metrics run_id=metrics01 event=ready message="Ready to serve"
 ```
 
 Press Ctrl+C to stop following the log. The pod keeps running.
@@ -95,7 +97,7 @@ You should see about 12 lines with `cpu_percent` around 80: one minute of high C
 
 ## Step 5: See a memory leak
 
-Wait until **at least 40 minutes** after the pod started. Then run:
+Wait until **at least 40 minutes** after the pod started. Then run this query (in **SQL mode**):
 
 ```sql
 SELECT _timestamp, body
@@ -137,6 +139,29 @@ Times are counted from when the pod started.
 | Memory leak | Minute 35-50 of every hour | Memory climbs steadily from 55% to about 85%, then drops back |
 
 Restarting the pod restarts the schedule from minute 0.
+
+---
+
+## Settings
+
+Two settings live in `deployment.yaml` under `env`:
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `RUN_ID` | `metrics01` | Added to every line as `run_id=...`, so one search finds a whole run. Use a new value for each test run. Letters, digits, `_` and `-`, up to 64 characters |
+| `ANOMALIES` | `on` | `on` = CPU spikes and memory leak on the schedule above. `off` = normal values only |
+
+To change them without editing the file (this restarts the pod, so the schedule starts again from minute 0):
+
+```bash
+kubectl set env deployment/synthetic-metrics -n stars RUN_ID=baseline01 ANOMALIES=off
+```
+
+Use `ANOMALIES=off` for **baseline runs**, when you need a stretch of purely normal data. Find a run in OpenObserve with:
+
+```sql
+k8s_container_name = 'synthetic-metrics' AND body LIKE '%run_id=baseline01 %'
+```
 
 ---
 
@@ -198,5 +223,14 @@ This only removes it from the cluster. The files in the repo stay.
 
 - **Startup check:** the file must appear within 30 seconds, or the pod is restarted.
 - **Readiness check:** the file must have been updated in the last 30 seconds, or `READY` shows `0/1`. This catches a script that is running but stuck.
+
+**Startup and readiness logs.** For the Observability team's startup monitoring, the script logs these two lines (format agreed with Observability):
+
+```text
+<UTC time> level=INFO service=synthetic-metrics run_id=<RUN_ID> event=startup message="Process started"
+<UTC time> level=INFO service=synthetic-metrics run_id=<RUN_ID> event=ready message="Ready to serve"
+```
+
+`event=startup` is printed as soon as the script starts. `event=ready` is printed once, right after the first metrics line, at the same moment the ready file is created. The time between them is the startup time.
 
 When the pod is stopped, the script logs `Stopping` and exits cleanly.

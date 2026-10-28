@@ -17,6 +17,11 @@ spec:
         - name: synthetic-metrics       # Name given to container
           image: python:3.12-slim       # Container Image
           command: ["python", "-u", "/app/synthetic_metrics.py"]     # Used so output isnt held back
+          env:
+            - name: RUN_ID                # Tags every log line; use a new value for each test run
+              value: "metrics01"
+            - name: ANOMALIES             # "on" = CPU spikes + memory leak, "off" = normal values only
+              value: "on"
           startupProbe:                 # Waits until the script has printed its first line
             exec:
               command: ["test", "-f", "/tmp/ready"]
