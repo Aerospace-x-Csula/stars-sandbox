@@ -23,6 +23,10 @@ spec:
         - name: log-generator
           image: busybox:1.36
 
+          env:
+            - name: AUTO_SPIKE
+              value: "false"
+
           command:
             - /bin/sh
             - -c
@@ -30,7 +34,15 @@ spec:
           args:
             - |
               set -eu
+              AUTO_SPIKE_PID=
+              cleanup() {
+                if [ -n "$AUTO_SPIKE_PID" ]; then
+                  kill "$AUTO_SPIKE_PID" 2>/dev/null || true
+                  wait "$AUTO_SPIKE_PID" 2>/dev/null || true
+                fi
+              }
               trap 'exit 0' TERM INT
+              trap cleanup EXIT
               CONTROL_DIR=/tmp/stars-control
               export CONTROL_DIR
               mkdir -p "$CONTROL_DIR"
@@ -55,11 +67,59 @@ spec:
               printf 'Queued scenario=%s run_id=%s\n' "$1" "$2"
               TRIGGER
               chmod 700 /tmp/stars-trigger
+
               log() {
                 printf '%s level=%s service=log-generator scenario=%s run_id=%s message="%s"\n' \
                   "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$1" "$2" "$3" "$4"
               }
+
+              # Automatic spikes run separately, so manual scenarios remain responsive.
+              auto_spike() {
+                SPIKE=1
+                while true; do
+                  AUTO_RUN_ID="auto-$(date -u '+%Y%m%dT%H%M%SZ')-$SPIKE"
+                  i=1
+                  while [ "$i" -le 20 ]; do
+                    case $((i % 5)) in
+                      1)
+                        TYPE="authentication"
+                        MESSAGE="authentication failure user_id=test-user reason=invalid_token"
+                        ;;
+                      2)
+                        TYPE="database"
+                        MESSAGE="database timeout database=stars-db timeout_ms=5000"
+                        ;;
+                      3)
+                        TYPE="connectivity"
+                        MESSAGE="connection failure target=stars-api:8080 reason=connection_refused"
+                        ;;
+                      4)
+                        TYPE="dependency"
+                        MESSAGE="dependency failure service=payment-api reason=unavailable"
+                        ;;
+                      0)
+                        TYPE="service"
+                        MESSAGE="service unavailable service=stars-api status=503"
+                        ;;
+                    esac
+                    printf '%s level=ERROR service=log-generator scenario=%s spike=true run_id=%s error_index=%s message="%s"\n' \
+                      "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$TYPE" "$AUTO_RUN_ID" "$i" "$MESSAGE"
+                    i=$((i + 1))
+                  done
+                  SPIKE=$((SPIKE + 1))
+                  sleep 20
+                done
+              }
+
               log INFO startup none 'STARS generator started'
+              if [ "${AUTO_SPIKE:-false}" = "true" ]; then
+                auto_spike &
+                AUTO_SPIKE_PID=$!
+                log INFO startup none 'Automatic error spikes enabled'
+              else
+                log INFO startup none 'Automatic error spikes disabled'
+              fi
+
               COUNT=1
               NEXT_HEARTBEAT=0
               while true; do
@@ -106,4 +166,3 @@ spec:
                 sleep 1 &
                 wait $!
               done
-
