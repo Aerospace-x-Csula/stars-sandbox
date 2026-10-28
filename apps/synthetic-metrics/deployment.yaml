@@ -1,0 +1,36 @@
+apiVersion: apps/v1                     # Kubernetes API version
+kind: Deployment                        # Creating Kubernetes Deployment
+metadata:
+  name: synthetic-metrics               # Deployment Name
+  namespace: stars                      # Deployment put into namespace 'stars'
+spec:
+  replicas: 1                           # Running singular pod
+  selector:
+    matchLabels:
+      app: synthetic-metrics            # Uses this name 
+  template:
+    metadata:
+      labels:
+        app: synthetic-metrics          # Same name used that is given to the pod
+    spec:
+      containers:
+        - name: synthetic-metrics       # Name given to container
+          image: python:3.12-slim       # Container Image
+          command: ["python", "-u", "/app/synthetic_metrics.py"]     # Used so output isnt held back
+          startupProbe:                 # Waits until the script has printed its first line
+            exec:
+              command: ["test", "-f", "/tmp/ready"]
+            periodSeconds: 2
+            failureThreshold: 15        # Gives the script up to 30 seconds to start
+          readinessProbe:               # Not ready if no line was printed in the last 30 seconds
+            exec:
+              command: ["python", "-c", "import os, sys, time; sys.exit(time.time() - os.path.getmtime('/tmp/ready') > 30)"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: script
+              mountPath: /app           # Places volume inside of script
+      volumes:
+        - name: script
+          configMap:
+            name: synthetic-metrics-script   # Makes sure that volume content comes from the Synthetic-metrics-script.
