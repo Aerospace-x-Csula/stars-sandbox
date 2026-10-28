@@ -23,6 +23,28 @@ spec:
         - name: log-generator
           image: busybox:1.36
 
+          # Probe succeeds once the startup event has been written.
+          startupProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test -f /tmp/stars-started
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 30
+
+          # Only Ready after the ready event and trigger setup are complete.
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test -f /tmp/stars-ready && test -x /tmp/stars-trigger
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 1
+
           env:
             - name: AUTO_SPIKE
               value: "false"
@@ -35,7 +57,13 @@ spec:
             - |
               set -eu
               AUTO_SPIKE_PID=
+              STARTUP_RUN_ID="startup-$(date -u '+%Y%m%dT%H%M%SZ')-$$$"
+              rm -f /tmp/stars-started /tmp/stars-ready
+              printf '%s level=INFO service=log-generator event=startup message="Process started" run_id=%s\n' \
+                "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$STARTUP_RUN_ID"
+              touch /tmp/stars-started
               cleanup() {
+                rm -f /tmp/stars-started /tmp/stars-ready
                 if [ -n "$AUTO_SPIKE_PID" ]; then
                   kill "$AUTO_SPIKE_PID" 2>/dev/null || true
                   wait "$AUTO_SPIKE_PID" 2>/dev/null || true
@@ -111,22 +139,25 @@ spec:
                 done
               }
 
-              log INFO startup none 'STARS generator started'
               if [ "${AUTO_SPIKE:-false}" = "true" ]; then
                 auto_spike &
                 AUTO_SPIKE_PID=$!
-                log INFO startup none 'Automatic error spikes enabled'
+                log INFO startup "$STARTUP_RUN_ID" 'Automatic error spikes enabled'
               else
-                log INFO startup none 'Automatic error spikes disabled'
+                log INFO startup "$STARTUP_RUN_ID" 'Automatic error spikes disabled'
               fi
+
+              printf '%s level=INFO service=log-generator event=ready message="Ready to serve" run_id=%s\n' \
+                "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$STARTUP_RUN_ID"
+              touch /tmp/stars-ready
 
               COUNT=1
               NEXT_HEARTBEAT=0
               while true; do
                 NOW=$(date +%s)
                 if [ "$NOW" -ge "$NEXT_HEARTBEAT" ]; then
-                  printf '%s level=INFO service=log-generator message="STARS heartbeat" count=%s\n' \
-                    "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$COUNT"
+                  printf '%s level=INFO service=log-generator message="STARS heartbeat" run_id=%s count=%s\n' \
+                    "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$STARTUP_RUN_ID" "$COUNT"
                   COUNT=$((COUNT + 1))
                   NEXT_HEARTBEAT=$((NOW + 5))
                 fi

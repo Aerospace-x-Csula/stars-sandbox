@@ -147,6 +147,38 @@ kubectl logs <pod-name> -n stars --tail=20
 
 The heartbeat counter resets after restart. Restart log following if it stopped. Repeated crashes close together may delay recovery.
 
+## Startup and Readiness Checks
+
+The Log Generator writes two INFO events on every container start:
+
+```text
+<UTC timestamp> level=INFO service=log-generator event=startup message="Process started" run_id=startup-...
+<UTC timestamp> level=INFO service=log-generator event=ready message="Ready to serve" run_id=startup-...
+```
+
+The `startupProbe` checks for `/tmp/stars-started`, created after the startup log. The `readinessProbe` checks for `/tmp/stars-ready` and the manual trigger script. The ready marker is created **after** `event=ready` is logged, so the pod cannot pass the readiness check before the event is emitted.
+
+Check startup and readiness in Windows PowerShell **or** Mac Terminal:
+
+```bash
+kubectl apply -f apps/log-generator/deployment.yaml     # Deploy updated probes
+kubectl -n stars rollout status deployment/log-generator # Wait until Ready
+kubectl get pods -n stars                                # Expect 1/1 Running
+kubectl logs -n stars deployment/log-generator --tail=20  # Find event=startup and event=ready
+kubectl describe deployment log-generator -n stars       # Inspect probe settings
+```
+
+To test becoming Not Ready and recovering **in your local Minikube test cluster only**:
+
+```bash
+kubectl exec -n stars deployment/log-generator -- rm /tmp/stars-ready     # Simulate Not Ready
+kubectl get pods -n stars                                                # Check 0/1 after the next probe
+kubectl exec -n stars deployment/log-generator -- touch /tmp/stars-ready # Restore Ready
+kubectl get pods -n stars                                                # Check 1/1 after the next probe
+```
+
+The startup log and ready log share the same startup `run_id`. Manual tests keep their own user-provided `run_id`, and automatic spikes keep a unique `run_id` per 20-error batch. Heartbeat logs also include the startup `run_id`.
+
 ## Automatic Error Spikes
 
 The combined `log-generator` also generates automatic spikes: **20 ERROR logs every ~20 seconds** when `AUTO_SPIKE=true`. This runs separately from the manual `error-spike` scenario. Each batch has four errors in each category: `authentication`, `database`, `connectivity`, `dependency`, and `service`. All are simulated.
@@ -155,16 +187,24 @@ The default in `apps/log-generator/deployment.yaml` is `AUTO_SPIKE: "false"`. To
 
 ```powershell
 kubectl set env deployment/log-generator -n stars AUTO_SPIKE=true   # Turn on automatic spikes
-kubectl rollout status deployment/log-generator -n stars            # Wait for the rollout
-kubectl logs -n stars deployment/log-generator --tail=30            # Check the generated logs
+kubectl rollout status deployment/log-generator -n stars          # Wait for the rollout
+kubectl logs -n stars deployment/log-generator --tail=30          # Check the generated logs
 ```
 
 Automatic logs contain `service=log-generator`, `spike=true`, `scenario=<type>`, `run_id=auto-...`, and `error_index=1` through `20`. All 20 errors in one batch share the same `run_id`; each new batch gets a different one. This replaces the old `spike_id` field.
 
-To count one batch, replace `YOUR_RUN_ID` with an ID from the logs:
+To count one batch, replace `YOUR_RUN_ID` with an ID from the logs.
+
+Windows (PowerShell):
 
 ```powershell
 kubectl logs -n stars deployment/log-generator | Select-String 'level=ERROR.*spike=true run_id=YOUR_RUN_ID ' | Measure-Object  # Expect Count: 20
+```
+
+Mac (Terminal):
+
+```bash
+kubectl logs -n stars deployment/log-generator | grep -c 'level=ERROR.*spike=true run_id=YOUR_RUN_ID '  # Expect 20
 ```
 
 Turn it off when finished:
@@ -183,7 +223,7 @@ The Log Generator writes logs to Kubernetes stdout. The OpenObserve Collector co
 For the dashboard setup, all seven SQL queries, and panel explanations, see:
 
 ```text
-observability/dashboards/README.md
+observability/dashboards/error-generator-dashboard.json
 ```
 
 That dashboard uses logs from the combined `log-generator` for both manual scenarios and automatic error spikes.
