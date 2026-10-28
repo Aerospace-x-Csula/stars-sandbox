@@ -58,10 +58,10 @@ kubectl logs -n stars -l app=synthetic-metrics -f
 You should see a startup line, a settings line, a ready line, then one new metrics line every 5 seconds:
 
 ```text
-... level=INFO service=synthetic-metrics run_id=metrics01 event=startup message="Process started"
+... level=INFO service=synthetic-metrics event=startup message="Process started" run_id=metrics01
 ... level=INFO ... run_id=metrics01 message="Settings interval_s=5 anomalies=on cpu_spike=every 5 min memory_leak=minutes 35-50 of each hour"
 ... level=INFO service=synthetic-metrics scenario=metrics host=synthetic-host-1 run_id=metrics01 cpu_percent=24.71 memory_percent=54.93
-... level=INFO service=synthetic-metrics run_id=metrics01 event=ready message="Ready to serve"
+... level=INFO service=synthetic-metrics event=ready message="Ready to serve" run_id=metrics01
 ```
 
 Press Ctrl+C to stop following the log. The pod keeps running.
@@ -160,7 +160,7 @@ kubectl set env deployment/synthetic-metrics -n stars RUN_ID=baseline01 ANOMALIE
 Use `ANOMALIES=off` for **baseline runs**, when you need a stretch of purely normal data. Find a run in OpenObserve with:
 
 ```sql
-k8s_container_name = 'synthetic-metrics' AND body LIKE '%run_id=baseline01 %'
+k8s_container_name = 'synthetic-metrics' AND body LIKE '%run_id=baseline01%'
 ```
 
 ---
@@ -227,8 +227,8 @@ This only removes it from the cluster. The files in the repo stay.
 **Startup and readiness logs.** For the Observability team's startup monitoring, the script logs these two lines (format agreed with Observability):
 
 ```text
-<UTC time> level=INFO service=synthetic-metrics run_id=<RUN_ID> event=startup message="Process started"
-<UTC time> level=INFO service=synthetic-metrics run_id=<RUN_ID> event=ready message="Ready to serve"
+<UTC time> level=INFO service=synthetic-metrics event=startup message="Process started" run_id=<RUN_ID>
+<UTC time> level=INFO service=synthetic-metrics event=ready message="Ready to serve" run_id=<RUN_ID>
 ```
 
 `event=startup` is printed as soon as the script starts. `event=ready` is printed once, right after the first metrics line, at the same moment the ready file is created. The time between them is the startup time.

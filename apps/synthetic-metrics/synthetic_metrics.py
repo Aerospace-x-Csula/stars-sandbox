@@ -27,8 +27,9 @@ def log(level, message):
 
 def event(name, message):
     # Startup/readiness lines in the format confirmed with the Observability team
-    print('%s level=INFO service=synthetic-metrics run_id=%s event=%s message="%s"'
-          % (stamp(), RUN_ID, name, message), flush=True)
+    # run_id goes at the end, after the confirmed fields (same as log-generator)
+    print('%s level=INFO service=synthetic-metrics event=%s message="%s" run_id=%s'
+          % (stamp(), name, message, RUN_ID), flush=True)
 
 
 def stop(signum, frame):
