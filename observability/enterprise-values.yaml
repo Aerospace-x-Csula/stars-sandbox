@@ -1,0 +1,11 @@
+enterprise:
+  enabled: true
+
+auth:
+  existingRootUserSecret:
+    name: openobserve-enterprise-admin
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: standard
