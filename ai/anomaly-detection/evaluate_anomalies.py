@@ -11,15 +11,16 @@ Reports:
   false alarms/hr   flagged minutes that were not near any event, per hour
   avg delay         time from an event starting to its first flag
 
-It also re-scores the same results at stricter and looser score cut-offs,
-so you can see how tuning would change the numbers without retraining.
+It also re-scores the same results at sensitivity levels from 2 to 25 sigma
+(OpenObserve's score is in sigma units), so you can see how tuning would
+change the numbers without retraining.
 
 Uses only the Python standard library. Example:
 
   export O2_USER="you@example.com"
   export O2_PASSWORD="your-password"
   python3 ai/anomaly-detection/evaluate_anomalies.py \
-      --rule cpu-spike --run-id test01 --metric cpu --label default-97
+      --rule cpu-spike --run-id test01 --metric cpu --label default-sigma6
 """
 import argparse
 import base64
@@ -130,6 +131,7 @@ def load_scores(args, start, end):
             "score": float(r.get("score") or 0),
             "flag": bool(flag),
             "value": r.get("actual_value"),
+            "threshold": float(r["threshold_value"]) if r.get("threshold_value") is not None else None,
         })
     return points, rows
 
@@ -185,7 +187,7 @@ def main():
     p.add_argument("--rule", required=True, help="Anomaly rule name exactly as shown in OpenObserve")
     p.add_argument("--run-id", required=True, help="synthetic-metrics RUN_ID of the test run, e.g. test01")
     p.add_argument("--metric", choices=MARKERS, default="cpu")
-    p.add_argument("--label", default="run", help="Name for this result, e.g. the slider setting")
+    p.add_argument("--label", default="run", help="Name for this result, e.g. the sensitivity setting")
     p.add_argument("--hours", type=float, default=3, help="How many hours back to look (default 3)")
     p.add_argument("--resolution", type=int, default=60, help="Rule's detection resolution in seconds (default 60)")
     p.add_argument("--tolerance", type=int, default=60,
@@ -240,12 +242,38 @@ def main():
     rows = [fmt_row("OpenObserve flags (as configured)",
                     evaluate(points, events, lambda q: q["flag"], res, tol, hours))]
 
-    # What-if: re-score at score cut-offs taken from this run's score distribution
-    scores = sorted(q["score"] for q in points)
-    for pct in (80, 90, 95, 97, 99):
-        cut = scores[min(len(scores) - 1, int(len(scores) * pct / 100))]
-        m = evaluate(points, events, lambda q, c=cut: q["score"] > c, res, tol, hours)
-        rows.append(fmt_row("score > %.2f (top %d%%)" % (cut, 100 - pct), m))
+    # What-if: re-score the same points at other sensitivity levels.
+    # OpenObserve's score is in sigma units (threshold_value matches the rule's k),
+    # so "score > k" is what the rule would flag at Level = k sigma.
+    current_k = points[-1].get("threshold")
+    for k in (2, 3, 4, 5, 6, 8, 10, 15, 20, 25):
+        m = evaluate(points, events, lambda q, c=k: q["score"] > c, res, tol, hours)
+        mark = " (current)" if current_k is not None and abs(current_k - k) < 1e-9 else ""
+        rows.append(fmt_row("Level %d sigma%s" % (k, mark), m))
+
+    # How close normal minutes came to being flagged, and how weak the weakest real hit was
+    def near_any(t):
+        return any(t < e_end + tol and t + res > e_start for e_start, e_end in events)
+    normal = [q["score"] for q in points if not near_any(q["time"])]
+    event_peaks = []
+    for e_start, e_end in events:
+        s = [q["score"] for q in points if q["time"] < e_end + tol and q["time"] + res > e_start]
+        if s:
+            event_peaks.append(max(s))
+    margin = []
+    if normal:
+        margin.append("- Highest score on a normal minute: %.2f sigma (%d normal minutes)"
+                      % (max(normal), len(normal)))
+    if event_peaks:
+        margin.append("- Lowest peak score of a real spike: %.2f sigma (%d spikes scored)"
+                      % (min(event_peaks), len(event_peaks)))
+    if normal and event_peaks:
+        lo, hi = max(normal), min(event_peaks)
+        if hi > lo:
+            margin.append("- Any level between %.2f and %.2f sigma separates every spike from every normal minute"
+                          % (lo, hi))
+        else:
+            margin.append("- No single level separates them: some normal minutes score above the weakest spike")
 
     report = "\n".join([
         "# Anomaly detection accuracy: %s" % args.label,
@@ -261,7 +289,12 @@ def main():
         *rows,
         "",
         "The first row is what OpenObserve actually alerted on. The other rows re-score the same",
-        "points at different score cut-offs, to show what a stricter or looser setting would do.",
+        "points at other sensitivity levels (score is in sigma units), to show what a stricter",
+        "or looser setting would do without retraining.",
+        "",
+        "## Separation",
+        "",
+        *margin,
     ])
     print(report)
 
