@@ -14,6 +14,7 @@ We will be following this architectural outline for the foreseeable future
 
 
 ## Directory Contents
+- [Resource forecasting](forecasting/README.md): initial Python trend forecasting prototype
 - 'README.md' is this file 
 - 'ai-diagram.png' is the architectural outline for the project
 
