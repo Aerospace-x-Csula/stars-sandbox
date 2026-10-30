@@ -1,7 +1,5 @@
 # Anomaly Detection Accuracy Report
 
-**Author:** Eric | **Requested by:** Jayden (AI/ML sub-lead) | **Pipeline step:** 1, Learn "normal" and flag anomalies
-
 ## Summary
 
 OpenObserve's built-in anomaly detection (Random Cut Forest), trained on 24 hours of normal CPU data, caught **all 23 injected CPU spikes with zero false alarms** (precision 1.00, recall 1.00) at its default sensitivity of 6σ, flagging each spike about 28 seconds after it started. Re-scoring the same run from 2σ to 25σ showed no false alarms at any level, so the default is already fully specific on this data. Stricter settings (15σ and above) only missed spikes. **Recommended setting: keep the default (Auto, 6σ).**

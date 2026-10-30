@@ -1,7 +1,5 @@
 # Anomaly Detection: Tuning and Accuracy (Pipeline Step 1)
 
-Owner: Eric (AI/ML task from Jayden)
-
 **Goal:** learn what normal behavior looks like, flag anomalies, tune the flags to be more specific, and measure and report accuracy, using OpenObserve Enterprise Anomaly Detection.
 
 **Test data:** `apps/synthetic-metrics` (on the `apps` branch). It logs `cpu_percent` and `memory_percent` every 5 seconds. With `ANOMALIES=on`, it adds a CPU spike in the last minute of every 5 minutes and a memory leak from minute 35 to 50 of every hour. It logs `started`/`ended` marker lines for each event, which serve as the ground truth.
