@@ -1,0 +1,53 @@
+# One finite trace run. Do not apply directly: use ./run.sh, which fills in
+# __JOB_NAME__, __SCENARIO__, __RUN_ID__ and __DURATION__.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __JOB_NAME__
+  namespace: stars
+  labels:
+    app: trace-generator
+spec:
+  backoffLimit: 0                    # a failed run is not retried, so a run never repeats itself
+  ttlSecondsAfterFinished: 3600      # clean up an hour after finishing
+  template:
+    metadata:
+      labels:
+        app: trace-generator
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: trace-generator
+          image: python:3.12-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install --no-cache-dir -q -r /app/requirements.txt && python /app/generator.py
+          env:
+            - name: SCENARIO
+              value: "__SCENARIO__"
+            - name: RUN_ID
+              value: "__RUN_ID__"
+            - name: DURATION_SECONDS
+              value: "__DURATION__"
+            - name: RATE
+              value: "2"
+            # ASSUMED endpoint: the OpenObserve collector gateway (OTLP/HTTP).
+            # Confirm the service name and port with the Observability team:
+            #   kubectl get svc -n openobserve-collector
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://o2c-openobserve-collector-gateway-collector.openobserve-collector.svc.cluster.local:4318"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            # Silence harmless pip warnings (running as root, new pip version) in the job log.
+            - name: PIP_ROOT_USER_ACTION
+              value: "ignore"
+            - name: PIP_DISABLE_PIP_VERSION_CHECK
+              value: "1"
+          volumeMounts:
+            - name: app
+              mountPath: /app
+      volumes:
+        - name: app
+          configMap:
+            name: trace-generator
