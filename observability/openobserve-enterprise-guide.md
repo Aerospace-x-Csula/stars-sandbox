@@ -1,8 +1,12 @@
-# OpenObserve Standalone → Enterprise (Minikube)
+# Fresh OpenObserve Enterprise Installation (Minikube)
 
-This guide installs **OpenObserve Enterprise alongside an existing Community/Standalone instance**. It assumes Minikube, Helm, OpenTelemetry collectors (`o2c` Helm release), and the log/error generators are already installed. **No need to pause or reinstall the generators or collectors.** A brief collector restart and possible telemetry gap can occur when changing destinations.
+**THE OTHER GUIDE IS RECOMMENDED TO TRY FIRST SINCE IT IS EASIER**
+
+This guide installs a fresh **OpenObserve Enterprise ALONGSIDE an existing Community/Standalone instance**. It assumes Minikube, Helm, OpenTelemetry collectors (`o2c` Helm release), and the log/error generators are already installed. **No need to pause or reinstall the generators or collectors.** A brief collector restart and possible telemetry gap can occur when changing destinations.
 
 **Only configuration file you need to retain:** `enterprise-values.yaml` (your tested Enterprise Helm configuration, with no plaintext secrets). Keep your old OpenObserve installation and PVC until Enterprise is verified. A fresh Enterprise installation does **not** automatically migrate historical logs or dashboards.
+
+**This guide is when your collector has already been installed.**
 
 ## 1. Start Minikube and install Enterprise
 
