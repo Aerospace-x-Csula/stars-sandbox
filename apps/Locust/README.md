@@ -15,7 +15,7 @@ It simulates four scenarios:
 
 Each scenario can be run from the Locust web UI or with no UI as a Kubernetes Job.
 
-> **Placeholders:** the test app is httpbin, so the endpoints in `apps/Locust/locustfile.py` (`/`, `/get`, `/status/500`, `/delay/5`) are httpbin's. If you test your own app, edit `apps/Locust/stars-app.yaml` and replace those paths.
+> **Placeholders:** the test app is httpbin, so the endpoints in `apps/locust/locustfile.py` (`/`, `/get`, `/status/500`, `/delay/5`) are httpbin's. If you test your own app, edit `apps/locust/stars-app.yaml` and replace those paths.
 
 ## Prerequisites
 
@@ -28,9 +28,9 @@ Each scenario can be run from the Locust web UI or with no UI as a Kubernetes Jo
 
 Every command here works the same in macOS Terminal (zsh or bash), Windows PowerShell and Windows cmd:
 
-- Paths use forward slashes (`apps/Locust/locust.yaml`), which kubectl accepts on Windows.
+- Paths use forward slashes (`apps/locust/locust.yaml`), which kubectl accepts on Windows.
 - One command per line. There are no `\` line continuations, `&&`, `grep` or `export`, which differ between shells.
-- `apps/Locust/locustfile.py` is ASCII-only, so PowerShell 5.1 can pipe it without corrupting characters. Keep it that way when you edit it.
+- `apps/locust/locustfile.py` is ASCII-only, so PowerShell 5.1 can pipe it without corrupting characters. Keep it that way when you edit it.
 - Stop a running `port-forward` or `logs -f` with Ctrl+C on both systems.
 
 ## 1. Prepare the cluster
@@ -38,16 +38,16 @@ Every command here works the same in macOS Terminal (zsh or bash), Windows Power
 ```bash
 minikube start
 minikube addons enable metrics-server
-kubectl apply -f apps/Locust/namespace.yaml
-kubectl apply -f apps/Locust/stars-app.yaml
+kubectl apply -f apps/locust/namespace.yaml
+kubectl apply -f apps/locust/stars-app.yaml
 kubectl -n stars rollout status deployment/stars-app
 ```
 
-The metrics-server addon lets you watch load with `kubectl top`. `apps/Locust/stars-app.yaml` deploys httpbin as `stars-app` with a startup probe and a readiness probe on `/get`, plus a Service so Locust can reach it at `http://stars-app.stars.svc.cluster.local`.
+The metrics-server addon lets you watch load with `kubectl top`. `apps/locust/stars-app.yaml` deploys httpbin as `stars-app` with a startup probe and a readiness probe on `/get`, plus a Service so Locust can reach it at `http://stars-app.stars.svc.cluster.local`.
 
 ## 2. The locustfile
 
-`apps/Locust/locustfile.py` has one user class per traffic pattern:
+`apps/locust/locustfile.py` has one user class per traffic pattern:
 
 | Class | Behavior |
 |---|---|
@@ -74,18 +74,18 @@ kubectl -n stars create secret generic openobserve-credentials --from-literal=ur
 
 Skip this if you aren't using OpenObserve. Locust works without it. If you create the Secret later, run `kubectl -n stars rollout restart deployment/locust`.
 
-Create (or update) the ConfigMap from `apps/Locust/locustfile.py`, then deploy:
+Create (or update) the ConfigMap from `apps/locust/locustfile.py`, then deploy:
 
 ```bash
-kubectl -n stars create configmap locustfile --from-file=apps/Locust/locustfile.py --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f apps/Locust/locust.yaml
+kubectl -n stars create configmap locustfile --from-file=apps/locust/locustfile.py --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f apps/locust/locust.yaml
 kubectl -n stars rollout status deployment/locust
 kubectl -n stars port-forward svc/locust 8089:8089
 ```
 
 Open <http://localhost:8089>. The deployment has a startup probe and a readiness probe on the web UI, so `rollout status` only finishes once the UI is answering.
 
-The `--class-picker` flag in `apps/Locust/locust.yaml` is what shows the **User Classes** selector in the UI. Without it, Locust runs every class at once.
+The `--class-picker` flag in `apps/locust/locust.yaml` is what shows the **User Classes** selector in the UI. Without it, Locust runs every class at once.
 
 ## 4. Run each scenario
 
@@ -108,13 +108,13 @@ kubectl -n stars top pods
 
 ### Without the UI (headless)
 
-Each scenario has a Job in `apps/Locust/jobs/` that runs for 5 minutes, prints a stats table in its logs, and exits. The three lines for each are: remove any previous run of that Job, start it, follow its logs. If the logs command says the container is still creating, wait a few seconds and run it again.
+Each scenario has a Job in `apps/locust/jobs/` that runs for 5 minutes, prints a stats table in its logs, and exits. The three lines for each are: remove any previous run of that Job, start it, follow its logs. If the logs command says the container is still creating, wait a few seconds and run it again.
 
 **normal** (20 users, 2/s)
 
 ```bash
 kubectl -n stars delete job locust-normal --ignore-not-found
-kubectl apply -f apps/Locust/jobs/normal.yaml
+kubectl apply -f apps/locust/jobs/normal.yaml
 kubectl -n stars logs -f job/locust-normal
 ```
 
@@ -122,7 +122,7 @@ kubectl -n stars logs -f job/locust-normal
 
 ```bash
 kubectl -n stars delete job locust-high-traffic --ignore-not-found
-kubectl apply -f apps/Locust/jobs/high-traffic.yaml
+kubectl apply -f apps/locust/jobs/high-traffic.yaml
 kubectl -n stars logs -f job/locust-high-traffic
 ```
 
@@ -130,7 +130,7 @@ kubectl -n stars logs -f job/locust-high-traffic
 
 ```bash
 kubectl -n stars delete job locust-failing --ignore-not-found
-kubectl apply -f apps/Locust/jobs/failing.yaml
+kubectl apply -f apps/locust/jobs/failing.yaml
 kubectl -n stars logs -f job/locust-failing
 ```
 
@@ -138,7 +138,7 @@ kubectl -n stars logs -f job/locust-failing
 
 ```bash
 kubectl -n stars delete job locust-mixed --ignore-not-found
-kubectl apply -f apps/Locust/jobs/mixed.yaml
+kubectl apply -f apps/locust/jobs/mixed.yaml
 kubectl -n stars logs -f job/locust-mixed
 ```
 Make sure to delete any jobs you've created once you're done:
@@ -153,7 +153,7 @@ kubectl -n stars delete job locust-mixed --ignore-not-found
 
 To change the number of users, ramp up or duration, edit `-u`, `-r` and `-t` in the Job file. The `failing` and `mixed` Jobs pass `--exit-code-on-error 0`, because failures are expected there and shouldn't mark the Job as failed.
 
-After you edit `apps/Locust/locustfile.py`, rerun the ConfigMap command from step 3. Jobs pick up the new file when they start; for the web UI also run `kubectl -n stars rollout restart deployment/locust`.
+After you edit `apps/locust/locustfile.py`, rerun the ConfigMap command from step 3. Jobs pick up the new file when they start; for the web UI also run `kubectl -n stars rollout restart deployment/locust`.
 
 ## 5. Simulate failures in the app itself
 

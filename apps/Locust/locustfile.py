@@ -40,7 +40,7 @@ log_lifecycle("startup", "Process started")
 log = logging.getLogger("stars.loadtest")
 
 # Optional OpenObserve output. Leave O2_URL unset to turn it off.
-# Example O2_URL: http://openobserve.observability.svc.cluster.local:5080/api/default
+# Example O2_URL: http://openobserve-openobserve-standalone.stars.svc.cluster.local:5080/api/default
 O2_URL = os.getenv("O2_URL", "").rstrip("/")
 O2_HEADERS = {}
 if os.getenv("O2_USER"):

@@ -10,7 +10,7 @@ configured (see "Send results to OpenObserve" in the main README):
 
 ## How to run a search
 
-1. Open OpenObserve (`kubectl -n observability port-forward svc/openobserve 5080:5080`, then http://localhost:5080).
+1. Open OpenObserve (`kubectl -n stars port-forward svc/openobserve-openobserve-standalone 5080:5080`, then http://localhost:5080).
 2. Go to **Logs** and select the stream (`locust` or `locust_runs`).
 3. Turn on **SQL mode**, paste a query below, and set the time range (for example, Last 15 minutes).
 4. Run the query. To keep it, save it as a view from the Logs page.
