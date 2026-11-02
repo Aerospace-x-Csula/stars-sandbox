@@ -26,13 +26,18 @@ from datetime import datetime, timezone
 
 SERVICE = os.getenv("SERVICE_NAME", "locust")
 
+# One id for this process. The startup and ready lines carry it, and the first
+# test run in the process reuses it, so all lines of a headless Job match.
+# LOCUST_RUN_ID (the same variable --run-id reads) wins if it is set.
+PROCESS_RUN_ID = os.getenv("LOCUST_RUN_ID") or uuid.uuid4().hex[:8]
+
 
 def log_lifecycle(event, message):
     # Plain print, not logging: Locust's logger adds its own prefix,
     # which would break the required line format.
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    print('{} level=INFO service={} event={} message="{}"'.format(
-        ts, SERVICE, event, message), flush=True)
+    print('{} level=INFO service={} run_id={} event={} message="{}"'.format(
+        ts, SERVICE, PROCESS_RUN_ID, event, message), flush=True)
 
 
 log_lifecycle("startup", "Process started")
@@ -49,6 +54,16 @@ if os.getenv("O2_USER"):
 
 _run = {"run_id": "-", "scenario": "-", "started": time.time()}
 _buffer = []
+_first_test = [True]
+
+
+def _next_run_id():
+    # First test in this process reuses PROCESS_RUN_ID. Later tests started from
+    # the web UI get a fresh id so runs stay distinguishable.
+    if _first_test[0]:
+        _first_test[0] = False
+        return PROCESS_RUN_ID
+    return uuid.uuid4().hex[:8]
 
 
 # --------------------------------------------------------------------------
@@ -110,7 +125,7 @@ def on_init(environment, **kwargs):
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
     opts = environment.parsed_options
-    _run["run_id"] = getattr(opts, "run_id", "") or uuid.uuid4().hex[:8]
+    _run["run_id"] = getattr(opts, "run_id", "") or _next_run_id()
     _run["scenario"] = getattr(opts, "scenario", "") or "adhoc"
     _run["started"] = time.time()
     runner = environment.runner

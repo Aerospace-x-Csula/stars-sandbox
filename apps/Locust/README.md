@@ -196,6 +196,29 @@ FROM "locust"
 ORDER BY _timestamp DESC
 ```
 
+## 8. How to find run_id
+
+If you use the web UI, use this command on a secondary terminal while a job is running to get the run_id.
+
+```bash
+kubectl -n stars logs deploy/locust | grep -E "event=(startup|ready)"
+```
+
+When starting a headless version, run_id can be found near the top of the output.
+For example run_id is highlighted:
+
+job.batch/locust-normal created
+container "locust" in pod "locust-normal-xgv6t" is waiting to start: ContainerCreating
+2026-11-02T23:37:43Z level=INFO service=locust run_id=b052380b event=startup message="Process started"
+[2026-11-02 23:37:43,532] locust-normal-xgv6t/INFO/locust.main: Starting Locust 2.32.0
+2026-11-02T23:37:43Z level=INFO service=locust `run_id=b052380b` event=ready message="Ready to serve"
+[2026-11-02 23:37:43,533] locust-normal-xgv6t/INFO/locust.main: Run time limit set to 300 seconds
+
+run_id can also be found by using on a second terminal.
+```bash
+kubectl -n stars logs job/locust-normal | grep -E "event=(startup|ready)|loadtest"
+```
+
 ## Tips
 
 - **Scaling the generator:** one Locust process tops out around a few thousand requests per second, and minikube will likely limit you first. Start with more headroom using `minikube start --cpus=4 --memory=8g`. For larger loads, Locust supports a master plus worker pods.
