@@ -1,3 +1,4 @@
+
 # STARS Sandbox System Overview
 
 > **Status:** Draft — pending review by the Architecture Lead and relevant sub-leads.
