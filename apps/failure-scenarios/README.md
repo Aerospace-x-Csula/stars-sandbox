@@ -3,14 +3,14 @@
 Expected logs, traces, metrics and behavior for every STARS generator, with a test case for each scenario. The pass/fail criteria are written so they can be turned into automated checks later.
 
 ## Contents
-* [1. Log Generator](#Part-1-log-generator)
-* [2. Trace Generator](#Part-2-trace-generator)
-* [3. Syntehtic Metrics](#Part-3-synthetic-metrics)
-* [4. Automatic Error Spike](#Part-4-Automatic-error-spike)
-* [5. Locust](#Part-5-Locust-traffic)
-* [6. Readiness](#Part-6-Readiness)
-* [7. Test Case Catalog](#Test-case-catalog)
-* [8. Notes](#Notes)
+* [1. Log Generator](#part-1-log-generator)
+* [2. Trace Generator](#part-2-trace-generator)
+* [3. Synthetic Metrics](#part-3-synthetic-metrics)
+* [4. Automatic Error Spike](#part-4-automatic-error-spike)
+* [5. Locust](#part-5-locust-traffic)
+* [6. Readiness](#part-6-readiness)
+* [7. Test Case Catalog](#test-case-catalog)
+* [8. Notes](#notes)
 
 ## Generators and Their Scenarios
 | Part | Generator | Scenarios |
@@ -186,7 +186,7 @@ Keep run IDs under 40 characters. The PowerShell version does not validate the s
 ```bash
 kubectl -n stars logs -f job/trace-generator-<RUN_ID>
 kubectl -n stars wait --for=condition=complete job/trace-generator-<RUN_ID> --timeout=180s
-kubectl -n stars port-forward svc/openobserve-openobserve-standalone 5080:5080
+kubectl -n openobserve port-forward svc/openobserve 5080:5080
 ```
 Then open <http://localhost:5080>, click **Traces**, set **Past 15 Minutes**, and filter with `service_stars_run_id = '<RUN_ID>'` (this is how OpenObserve names the run ID field). Traces appear after a short delay, and runs older than the time range show nothing.
 
@@ -373,7 +373,7 @@ Locust runs **inside** the cluster and sends HTTP traffic to `stars-app` (httpbi
 **Run a scenario** (same on Mac and Windows; `<scenario>` is `normal`, `high-traffic`, `failing` or `mixed`):
 ```bash
 kubectl -n stars delete job locust-<scenario> --ignore-not-found
-kubectl apply -f apps/Locust/jobs/<scenario>.yaml
+kubectl apply -f apps/locust/jobs/<scenario>.yaml
 kubectl -n stars logs -f job/locust-<scenario>
 kubectl -n stars wait --for=condition=complete job/locust-<scenario> --timeout=420s
 ```
@@ -526,10 +526,10 @@ Use a **unique run ID per execution** (Locust and the automatic spikes generate 
 | TC-09 | synthetic-metrics | CPU spike | `kubectl set env deployment/synthetic-metrics -n stars RUN_ID=<RUN_ID> ANOMALIES=on` | `CPU spike started` (WARN), about 12 lines with `cpu_percent` around 80, `CPU spike ended` (INFO) | Pod stays Ready; repeats every 5 min | Within 6 min of pod start: exactly 1 start and 1 end line; 11 to 13 metrics lines between them with `cpu_percent` above 65; lines outside the spike below 65; `memory_percent` below 65 throughout; restart count unchanged |
 | TC-10 | synthetic-metrics | Memory leak | same as TC-09 (one run covers both) | `Memory leak started` (WARN) at about minute 35, rising `memory_percent`, `Memory leak ended` (INFO) at about minute 50 | Pod stays Ready; repeats hourly | Within 55 min of pod start: exactly 1 start and 1 end line, 13 to 17 minutes apart; `memory_percent` climbs about 2 points per minute (about 55 at the start, 66 at 5 min, 73 at 9 min, 80 at 12 min); value after the end line below 65; restart count unchanged |
 | TC-11 | log-generator (automatic) | Automatic error spike | `kubectl -n stars set env deployment/log-generator AUTO_SPIKE=true` | A spike every 20 s: 20 ERROR lines with `spike=true run_id=auto-<UTC>-<n>` and `error_index` 1..20; `scenario` cycles authentication, database, connectivity, dependency, service | Spikes repeat by themselves, the first at startup; container stays up | Within 60s of startup: at least 2 complete spikes; each `run_id` has exactly 20 lines, all `level=ERROR spike=true`, with `error_index` 1 to 20 and no gaps or repeats and the scenario for its position in the 5-type cycle (index 1 is `authentication` with the `invalid_token` message); `n` rises by 1 per spike; consecutive spikes start 18 to 22 s apart; the same lines come back from the OpenObserve query (observed: 900 events in 15 minutes); with `AUTO_SPIKE=false`, 0 `spike=true` lines over two intervals (observed: 0); restart count unchanged (observed: 0) |
-| TC-12 | Locust | `normal` | `kubectl apply -f apps/Locust/jobs/normal.yaml` | `test_start` (users 20) and `test_stop`; stats table | About 5 minutes, completes, no errors | Within 420s: job `complete`; 1 `test_start` and 1 `test_stop` with the same `run_id`, `scenario` = `normal`; `users` = 20; `failures` = 0; `duration_s` 290 to 330; `requests` 2000 to 3200; 0 failures in the Job's stats table |
-| TC-13 | Locust | `high-traffic` | `kubectl apply -f apps/Locust/jobs/high-traffic.yaml` | `test_start` (users 200) and `test_stop`; stats table | About 5 minutes, completes; heavy load | Within 420s: job `complete`; matching start and stop for one `run_id`, `scenario` = `high-traffic`; `users` = 200; `requests` at least 10 times a `normal` run; failure rate below 1% |
-| TC-14 | Locust | `failing` | `kubectl apply -f apps/Locust/jobs/failing.yaml` | `test_start` (users 20) and `test_stop`; stats with 500, 404 and timeout rows | Job completes (not failed) despite errors | Within 420s: job `complete`, not `Failed`; matching start and stop, `scenario` = `failing`; `failures` at least 95% of `requests`; the Job's error report lists the 404, 500 and `ReadTimeout` errors |
-| TC-15 | Locust | `mixed` | `kubectl apply -f apps/Locust/jobs/mixed.yaml` | `test_start` (users 50) and `test_stop`; successes and failures | Job completes (not failed) | Within 420s: job `complete`; matching start and stop, `scenario` = `mixed`; `users` = 50; 0 < `failures` < `requests`; the Job's error report lists the 404, 500 and `ReadTimeout` errors alongside successful `homepage` and `list_items` requests |
+| TC-12 | Locust | `normal` | `kubectl apply -f apps/locust/jobs/normal.yaml` | `test_start` (users 20) and `test_stop`; stats table | About 5 minutes, completes, no errors | Within 420s: job `complete`; 1 `test_start` and 1 `test_stop` with the same `run_id`, `scenario` = `normal`; `users` = 20; `failures` = 0; `duration_s` 290 to 330; `requests` 2000 to 3200; 0 failures in the Job's stats table |
+| TC-13 | Locust | `high-traffic` | `kubectl apply -f apps/locust/jobs/high-traffic.yaml` | `test_start` (users 200) and `test_stop`; stats table | About 5 minutes, completes; heavy load | Within 420s: job `complete`; matching start and stop for one `run_id`, `scenario` = `high-traffic`; `users` = 200; `requests` at least 10 times a `normal` run; failure rate below 1% |
+| TC-14 | Locust | `failing` | `kubectl apply -f apps/locust/jobs/failing.yaml` | `test_start` (users 20) and `test_stop`; stats with 500, 404 and timeout rows | Job completes (not failed) despite errors | Within 420s: job `complete`, not `Failed`; matching start and stop, `scenario` = `failing`; `failures` at least 95% of `requests`; the Job's error report lists the 404, 500 and `ReadTimeout` errors |
+| TC-15 | Locust | `mixed` | `kubectl apply -f apps/locust/jobs/mixed.yaml` | `test_start` (users 50) and `test_stop`; successes and failures | Job completes (not failed) | Within 420s: job `complete`; matching start and stop, `scenario` = `mixed`; `users` = 50; 0 < `failures` < `requests`; the Job's error report lists the 404, 500 and `ReadTimeout` errors alongside successful `homepage` and `list_items` requests |
 | TC-16 | Readiness | Starts and becomes Ready in time | `kubectl -n stars rollout restart deployment/<APP>` | One `event=startup` and one `event=ready` line, same `run_id` | New pod Ready; no restarts | Within 60s: `1/1 Running`; startup timestamp at or before ready; Ready time at or after the ready timestamp (1s tolerance); restart count 0 |
 | TC-17 | Readiness | Not Ready on purpose, then recovers | Keep `/tmp/ready` stale with a 70-second loop (see scenario 17) | Pod goes `0/1`, then `1/1`; metrics lines keep coming every 5 s; `Readiness probe failed` events | Leaves service without restarting, recovers by itself | Within 60s: Ready condition `False`, `0/1` (observed at 50s); restart count unchanged (observed: 0); log still shows a new line every 5s; `describe` lists `Readiness probe failed`; within 30s of the loop ending: Ready `True`, `1/1`, no manual restart (observed within 20s) |
 
