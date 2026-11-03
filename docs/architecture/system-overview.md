@@ -1,71 +1,113 @@
 # STARS Sandbox System Overview
 
-> **Status:** Draft. This document describes the current high-level project architecture and will be updated as implementation decisions are finalized.
+> **Status:** Draft — pending review by the Architecture Lead and relevant sub-leads.
+> **Scope:** The documented local development sandbox, not a production STARS deployment. Running workloads and end-to-end telemetry have not been independently verified.
 
 ## Purpose
 
-The STARS sandbox is a local, reproducible environment for developing and evaluating the STARS AI-Powered Observability Platform.
+The STARS sandbox is a local, reproducible development environment for the **STARS AI-Powered Observability Platform**, a university capstone project in collaboration with The Aerospace Corporation. The project aims to monitor a representative environment, investigate problems using telemetry, and eventually support AI-assisted detection, root-cause analysis, and controlled remediation.
 
-The project is intended to progress from local infrastructure and sample applications to observability, AI-assisted detection and investigation, and controlled remediation.
+The current focus is establishing a working local Kubernetes sandbox with OpenObserve. Later features should be documented as implemented and tested, rather than assumed to be available.
 
-## Current High-Level Flow
+## Current High-Level Architecture
 
-Local Developer Workstation --> Docker --> Minikube --> Kubernetes Sandbox (Sample Applications, OpenObserve, Telemetry Collection) --> Future AI Detection / RCA --> Controlled Remediation
+The repository provides setup scripts for Windows and macOS that prepare a local Minikube cluster and install OpenObserve using Helm.
 
-## Current Repository Areas
+```text
+Student workstation (Windows or macOS)
+  |-- Git / stars-sandbox repository
+  |-- Docker Desktop
+  |     `-- Minikube (local Kubernetes cluster)
+  |           `-- Kubernetes namespace: stars
+  |                 `-- OpenObserve (Helm release: openobserve)
+  `-- kubectl / Helm
+        `-- Port-forward OpenObserve to http://localhost:5080
 
-- **Infrastructure:** (infrastructure/)
+Planned integration (not yet verified end-to-end):
+Sample applications --> Telemetry collectors --> OpenObserve
+                                               |
+                                               v
+                              AI detection / investigation
+                                               |
+                                               v
+                                  Controlled remediation
+```
 
-Owns the local cluster and sandbox infrastructure configuration.
+This diagram shows the **documented setup path**, not a verified inventory of running Pods or complete telemetry pipelines. There is no confirmed production or shared cluster in this overview.
 
-- **Applications:** (apps/)
+## Main Components
 
-Contains sample applications and telemetry-generation workloads used by the sandbox.
+| Component | Current documented role |
+| --- | --- |
+| **Developer workstation** | Runs setup scripts, Docker Desktop, Minikube, `kubectl`, and Helm. |
+| **Docker Desktop** | Provides the local container environment. Windows explicitly uses the Docker driver with WSL 2; macOS starts Docker before Minikube but does not explicitly select a driver. |
+| **Minikube / Kubernetes** | Hosts local sandbox resources. Windows setup requests 2 CPUs and 4 GB RAM; macOS uses Minikube's configured defaults. |
+| **`stars` namespace** | Groups project Kubernetes resources. |
+| **OpenObserve** | Installed using the `openobserve/openobserve-standalone` Helm chart, with release name `openobserve`. Provides the intended central observability interface and telemetry destination. |
+| **Sample applications** | The `apps/` directory is designated for sample workloads and telemetry generation; actual deployed applications still need confirmation. |
+| **Telemetry collection** | The `observability/` directory is designated for OpenObserve and collector configuration; active collectors and data flows still need confirmation. |
+| **AI and automation** | Planned capabilities for anomaly detection, investigation, root-cause analysis, and safe remediation; not established as working components by the supplied infrastructure setup. |
 
-- **Observability:** (observability/)
+## Current Setup and Access
 
-Contains OpenObserve and telemetry collection configuration and documentation.
+The repository includes two setup scripts:
 
-- **Automation:** (automation/)
+- **Windows:** [`infrastructure/setup-windows.ps1`](../../infrastructure/setup-windows.ps1) sets up WSL 2 / Docker Desktop, starts Minikube with the Docker driver, and uses Helm to install or upgrade OpenObserve in `stars`.
+- **macOS:** [`infrastructure/macsetup.sh`](../../infrastructure/macsetup.sh) installs missing tools, starts Docker and Minikube, creates `stars`, and installs OpenObserve with Helm.
 
-Contains automation and remediation-related implementation.
+Both scripts use a local file, `observability/values.local.yaml`, for OpenObserve login configuration. **Do not commit credentials or this local values file.**
 
-- **Documentation:** (docs/)
+The documented access method is a local port-forward:
 
-Contains cross-system architecture, onboarding, operational, runbook, and release documentation.
+```bash
+kubectl --context=minikube --namespace=stars port-forward svc/openobserve-openobserve-standalone 5080:5080
+```
 
-## Current Project Focus
+With port-forwarding running, open <http://localhost:5080>. This local URL does not indicate that OpenObserve is publicly exposed.
 
-The current repository README describes the project flow as:
+For installation steps and known setup issues, see the [local setup guide](../onboarding/local-setup.md) and [infrastructure setup instructions](../../infrastructure/SETUP.md).
 
+## Repository Areas
+
+| Directory | Responsibility |
+| --- | --- |
+| [`infrastructure/`](../../infrastructure/README.md) | Local cluster setup, namespaces, and infrastructure configuration. |
+| [`apps/`](../../apps/README.md) | Sample applications and telemetry-generating workloads. |
+| [`observability/`](../../observability/README.md) | OpenObserve setup and telemetry collection. |
+| [`automation/`](../../automation/) | Future investigation and controlled remediation implementation. |
+| [`docs/`](../README.md) | Cross-system architecture, onboarding, operational documentation, and release guidance. |
+
+Component-specific instructions should remain near their code or configuration. Cross-system explanations belong under `docs/`.
+
+## Project Direction
+
+The repository describes the intended development flow as:
+
+```text
 Sandbox (Minikube) --> Sample Apps --> OpenObserve --> AI Detection --> Auto-Fix
+```
 
-The current near-term goal is to get the sandbox, sample applications, and OpenObserve working together reliably.
+The **near-term integration goal** is to make the sandbox, sample applications, and OpenObserve work together reliably. The larger capstone plan adds logs, metrics, and traces; dashboards and alerts; AI-assisted anomaly detection and root-cause analysis; and controlled remediation with approval and rollback safeguards.
 
-## Documentation Principle
+These later stages are **project goals, not confirmed current functionality**. The sandbox is for development and testing, not autonomous changes to STARS production systems.
 
-Component-specific implementation documentation should remain near the component. Cross-system documentation should live under docs/.
+## Items to Verify Before Approval
 
-## Planned Architecture Documentation
+The Architecture Lead and relevant sub-leads should confirm:
 
-As implementation stabilizes, this architecture documentation should expand to cover:
-- VM and Kubernetes topology
-- Networking
-- Storage
-- Applications and dependencies
-- Telemetry sources
-- Collectors and agents
-- OpenObserve
-- Logs, metrics, and traces
-- Dashboards and alerting
-- AI/ML workflows
-- Root-cause analysis
-- Remediation workflows
-- Security and RBAC
-- CI/CD and release packaging
+- Which sample applications and telemetry collectors are actually deployed, and whether data reaches OpenObserve.
+- The active OpenObserve storage and persistence configuration.
+- Any additional service endpoints, networking, dashboards, or alerting that are already working.
+- Whether both setup scripts reliably reproduce the expected environment on supported computers.
+- Which AI, investigation, or remediation components, if any, have moved beyond planning.
+
+Update this overview when those items are verified; keep detailed deployment and topology information in the [infrastructure architecture document](infrastructure-architecture.md).
 
 ## Related Documents
 
-- [local-setup.md](../onboarding/local-setup.md)
-- [README.md](../README.md)
-- [install.md](../../observability/install.md)
+- [Infrastructure architecture](infrastructure-architecture.md) — local cluster design and implementation details.
+- [Local setup guide](../onboarding/local-setup.md) — onboarding and prerequisites.
+- [Infrastructure setup instructions](../../infrastructure/SETUP.md) — platform-specific scripts and commands.
+- [Repository README](../../README.md) — project goals and repository layout.
+- [Documentation index](../README.md) — other project documentation.
+- [Observability installation guide](../../observability/install.md) — OpenObserve installation details.
