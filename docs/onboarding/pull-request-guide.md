@@ -21,7 +21,7 @@ A team member opens the PR, not the sub-lead. GitHub doesn't let the person who 
 
    ![Branch menu on the repo's main page](images/branch-dropdown.png)
 
-3. Click **Compare & pull request** in the yellow banner. If there's no banner, go to **Pull requests** and click **New pull request**.
+3. Click **Compare & pull request** in the yellow banner. If there's no banner, go to **Pull requests**, click **New pull request**, set the branches (step 4), then click **Create pull request** to open the form.
 
    ![Compare & pull request banner](images/pull-request-compare-pull-request.png)
 
