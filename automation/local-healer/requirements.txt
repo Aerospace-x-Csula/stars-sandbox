@@ -1,0 +1,12 @@
+# Kubernetes Python Client
+kubernetes>=28.1.0
+
+# HTTP & API Utilities
+urllib3>=2.0.0
+requests>=2.31.0
+
+# Environment Variable & Config Management
+python-dotenv>=1.0.0
+
+# Optional: Enhanced Logging / Formatting
+rich>=13.0.0
