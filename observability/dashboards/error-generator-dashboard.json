@@ -102,7 +102,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count all matching ERROR logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count all matching ERROR logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -255,7 +255,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count connectivity failure logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=connectivity%'              -- Only connectivity failures",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count connectivity failure logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=connectivity%'              -- Only connectivity scenarios",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -408,7 +408,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count all matching WARN logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=WARN%'                         -- Only WARN-level logs",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count all matching WARN logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n      )\r\n  AND body LIKE '%level=WARN%'                         -- Only WARN-level logs",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -561,7 +561,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT\r\n    to_timestamp(_timestamp / 1000000) AS \"time\",      -- Convert timestamp to readable time\r\n    k8s_container_name AS \"source\",                    -- Show which generator made the log\r\n    body AS \"error\"                                    -- Show the actual ERROR message\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs\r\nORDER BY _timestamp DESC                               -- Newest errors first\r\nLIMIT 50                                               -- Show latest 50 errors",
+              "query": "SELECT to_timestamp(_timestamp / 1000000) AS \"time\",     -- Convert timestamp to readable time\r\n       body AS \"error\"                                   -- Show the actual error message\r\nFROM \"default\"                                           -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'             -- Include log-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                          -- Only ERROR-level logs\r\nORDER BY _timestamp DESC                                 -- Newest errors first\r\nLIMIT 50                                                 -- Show the latest 50 errors",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -733,7 +733,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT\r\n    histogram(_timestamp) AS \"x_axis_1\",              -- Group ERROR logs into time buckets\r\n    count(_timestamp) AS \"y_axis_1\"                   -- Count ERROR logs in each bucket\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND str_match(body, 'level=ERROR')                   -- Only ERROR-level logs\r\nGROUP BY x_axis_1                                      -- Group by time\r\nORDER BY x_axis_1 ASC                                  -- Oldest to newest",
+              "query": "SELECT\r\n    histogram(_timestamp) AS \"x_axis_1\",               -- Group ERROR logs into time buckets\r\n    count(_timestamp) AS \"y_axis_1\"                    -- Count ERROR logs in each bucket\r\nFROM \"default\"                                         -- Search the default OpenObserve log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n      )\r\n  AND str_match(body, 'level=ERROR')                   -- Only ERROR-level logs\r\nGROUP BY x_axis_1                                      -- Create one count for each time bucket\r\nORDER BY x_axis_1 ASC                                  -- Show oldest time to newest time",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -925,7 +925,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count container crash ERROR logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n        OR\r\n        k8s_container_name = 'error-generator'         -- Include error-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=crash%'                     -- Only actual crash scenarios",
+              "query": "SELECT count(_timestamp) AS \"y_axis_1\"                 -- Count container crash ERROR logs\r\nFROM \"default\"                                         -- Search the default log stream\r\nWHERE (\r\n        k8s_container_name = 'log-generator'           -- Include log-generator\r\n      )\r\n  AND body LIKE '%level=ERROR%'                        -- Only ERROR-level logs\r\n  AND body LIKE '%scenario=crash%'                     -- Only crash scenarios",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -1078,7 +1078,7 @@
           "queryType": "sql",
           "queries": [
             {
-              "query": "SELECT\r\n    CASE\r\n        WHEN body LIKE '%scenario=authentication%' THEN 'Authentication'\r\n        WHEN body LIKE '%scenario=database%'       THEN 'Database'\r\n        WHEN body LIKE '%scenario=connectivity%'   THEN 'Connectivity'\r\n        WHEN body LIKE '%scenario=dependency%'     THEN 'Dependency'\r\n        WHEN body LIKE '%scenario=service%'        THEN 'Service'\r\n    END AS \"x_axis_1\",                              -- Error type\r\n\r\n    count(_timestamp) AS \"y_axis_1\"                 -- Number of each error type\r\n\r\nFROM \"default\"\r\n\r\nWHERE k8s_container_name = 'error-generator'       -- Only error-generator logs\r\n  AND body LIKE '%level=ERROR%'                    -- Only ERROR logs\r\n  AND (\r\n       body LIKE '%scenario=authentication%'\r\n       OR body LIKE '%scenario=database%'\r\n       OR body LIKE '%scenario=connectivity%'\r\n       OR body LIKE '%scenario=dependency%'\r\n       OR body LIKE '%scenario=service%'\r\n  )\r\n\r\nGROUP BY x_axis_1                                  -- Group errors by type\r\nORDER BY y_axis_1 DESC                             -- Highest count first",
+              "query": "SELECT\r\n    CASE\r\n        WHEN body LIKE '%scenario=authentication%' THEN 'Authentication'\r\n        WHEN body LIKE '%scenario=database%'       THEN 'Database'\r\n        WHEN body LIKE '%scenario=connectivity%'   THEN 'Connectivity'\r\n        WHEN body LIKE '%scenario=dependency%'     THEN 'Dependency'\r\n        WHEN body LIKE '%scenario=service%'        THEN 'Service'\r\n    END AS \"x_axis_1\",                              -- Error type\r\n\r\n    count(_timestamp) AS \"y_axis_1\"                 -- Count each error type\r\n\r\nFROM \"default\"\r\n\r\nWHERE k8s_container_name = 'log-generator'         -- Only log-generator logs\r\n  AND body LIKE '%level=ERROR%'                    -- Only ERROR logs\r\n  AND body LIKE '%spike=true%'                     -- Only automatic error spikes\r\n  AND (\r\n       body LIKE '%scenario=authentication%'\r\n       OR body LIKE '%scenario=database%'\r\n       OR body LIKE '%scenario=connectivity%'\r\n       OR body LIKE '%scenario=dependency%'\r\n       OR body LIKE '%scenario=service%'\r\n  )\r\n\r\nGROUP BY x_axis_1                                  -- Group errors by type\r\nORDER BY y_axis_1 DESC                             -- Highest count first",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
