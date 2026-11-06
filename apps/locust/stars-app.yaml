@@ -1,0 +1,54 @@
+# Test app: httpbin. Replace the image, ports and probe path with your own app
+# if you have one. Keep the Service name "stars-app" (or change --host in
+# k8s/locust.yaml and k8s/jobs/*.yaml to match).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stars-app
+  namespace: stars
+  labels:
+    app: stars-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stars-app
+  template:
+    metadata:
+      labels:
+        app: stars-app
+    spec:
+      containers:
+        - name: httpbin
+          image: kennethreitz/httpbin   # community image; pin a tag or digest you have checked
+          ports:
+            - containerPort: 80
+          startupProbe:
+            httpGet:
+              path: /get
+              port: 80
+            periodSeconds: 2
+            failureThreshold: 30        # up to 60s to start
+          readinessProbe:
+            httpGet:
+              path: /get
+              port: 80
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stars-app
+  namespace: stars
+spec:
+  selector:
+    app: stars-app
+  ports:
+    - port: 80
+      targetPort: 80

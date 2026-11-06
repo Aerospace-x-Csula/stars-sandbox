@@ -16,6 +16,8 @@ Every span is tagged with a `run_id` and a `scenario`, so you can find the trace
 
 All commands run from the **root of the repository**.
 
+**On Windows?** `run.sh` is a shell script and does not run in PowerShell. Use the [Windows](#windows) section for Step 1; Steps 2 and 3 are the same.
+
 ---
 
 ## Before you start
@@ -90,6 +92,63 @@ frontend  GET /checkout
 ```
 
 The **Service Catalog** view (next to Traces) lists the four services.
+
+---
+
+## Windows
+
+The `kubectl` commands in this README work the same in PowerShell. Only `run.sh` (Step 1) and the local test need Windows versions. Run everything from the **root of the repository**.
+
+### Option A: Git Bash or WSL2 (easiest)
+
+If you have Git for Windows, open **Git Bash** (or a WSL2 terminal) in the repository root and use Step 1 exactly as written:
+
+```bash
+apps/trace-generator/run.sh normal trace01 60
+```
+
+`kubectl` must work in that terminal. Check with `kubectl get pods -n stars`.
+
+### Option B: PowerShell
+
+These commands do the same thing as `run.sh`. Change the first three values for each run:
+
+```powershell
+$Scenario = "normal"      # normal | slow-db | payment-errors
+$RunId    = "trace01"     # new run ID every time; letters, digits, _ and -
+$Duration = 60            # seconds
+
+$JobName = "trace-generator-" + $RunId.ToLower().Replace("_", "-")
+kubectl -n stars create configmap trace-generator --from-file=apps/trace-generator/generator.py --from-file=apps/trace-generator/requirements.txt --dry-run=client -o yaml | kubectl apply -f -
+(Get-Content apps/trace-generator/job.yaml -Raw) -replace "__JOB_NAME__", $JobName -replace "__SCENARIO__", $Scenario -replace "__RUN_ID__", $RunId -replace "__DURATION__", $Duration | kubectl create -f -
+```
+
+You should see `configmap/trace-generator configured` (or `created`) and `job.batch/trace-generator-trace01 created`. Then continue with [Step 2](#step-2-watch-it-run).
+
+- Keep run IDs short (under 40 characters) so the Job name stays valid.
+- `run.sh` checks the scenario and run ID for you; here a typo is not caught. A wrong scenario name makes the Job fail right away, so check the log in Step 2.
+- To run again, change `$RunId` and paste the last three lines again.
+
+### PowerShell versions of other commands
+
+Collector log in [Troubleshooting](#troubleshooting) (`grep` does not exist in PowerShell):
+
+```powershell
+kubectl logs -n openobserve-collector o2c-openobserve-collector-gateway-collector-0 | Select-String -NotMatch "Failed to scrape" | Select-Object -Last 30
+```
+
+Local test without a cluster (from [Settings](#settings-optional)):
+
+```powershell
+python -m venv apps/trace-generator/.venv
+apps/trace-generator/.venv/Scripts/Activate.ps1
+pip install -r apps/trace-generator/requirements.txt
+$env:DRY_RUN = "1"; $env:SCENARIO = "payment-errors"; $env:RUN_ID = "local01"; $env:DURATION_SECONDS = "5"
+python apps/trace-generator/generator.py
+```
+
+- If `python` is not found, use `py` instead.
+- If `Activate.ps1` is blocked ("running scripts is disabled"), run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, then try again.
 
 ---
 
