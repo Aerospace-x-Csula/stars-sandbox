@@ -14,7 +14,9 @@ This directory is maintained by the Automation & Self-Healing team.
 
 [crash-deployment.md](crash-deployment.md): Explains how to apply, monitor, and remove the crash deployment.
 
-[local-healer](local_healer/): Contains the Python self-healing script, its dependencies, and its component-specific README.
+[local-healer](local-healer/): Contains the Python self-healing script, its dependencies, and its component-specific README.
+
+[Automation-Diagram.pdf](Automation-Diagram.pdf): Architecture diagram of the planned self-healing flow, from failure classification to the audit log.
 
 # Usage
 
@@ -23,7 +25,8 @@ The crash deployment tests how Kubernetes handles a container that repeatedly ex
 The [Crash Deployment Guide](crash-deployment.md) has the commands, expected behavior, and cleanup instructions. 
 
 ## Local Healer
-The local healer also tracks recovery attempts by application and namespace. It limits healing attempts within a time window and can block further automated recovery when that limit is reached. These safeguards are intended to prevent repeated automated actions from continuing indefinitely. Installation, dependencies, and launch instructions are available in the [Local Healer README](local-healer/README.md).
+The local healer tracks pods labeled `auto-heal=true` and deletes them so their controller recreates them. It tracks recovery attempts by application and namespace, and stops after 3 restarts within a 30 minute window so it cannot loop forever. Every action, and every time the limit
+blocks one, prints an audit entry in the terminal (trigger, evidence, decision, action, result). Installation, dependencies, and launch instructions are available in the [Local Healer README](local-healer/README.md).
 
 # Verification 
 Verification should confirm that each component behaves as documented, rather than simply confirming that its commands execute without errors.
@@ -44,3 +47,26 @@ Cleanup instructions are available in the [Crash Deployment Guide](crash-deploym
 - [Crash Deployment Guide](crash-deployment.md) - Instructions for applying, monitoring, and removing the crash deployment.
 - [Local Healer README](local-healer/README.md) -  Prerequisites, installation, dependencies, and usage.
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - repository conventions, ownership, documentation requirements, and contribution workflow.
+
+## Known limits
+
+This is a first version for the sandbox. It restarts unhealthy pods and stops after 3 restarts in 30 minutes for the same app. 
+The following are not implemented yet and are planned for the spring:
+
+- **Checking the fix worked:** the healer does not yet confirm that a pod
+  recovered after a restart (post-check).
+- **Undoing a bad fix:** there is no automatic rollback to the previous
+  version if a fix makes things worse.
+- **Saving the action log:** actions are printed to the terminal only. Logs
+  are not yet saved or sent to OpenObserve.
+- **Running with limited permissions:** the healer uses the kubeconfig of
+  whoever runs it. It does not yet run with a dedicated service account that
+  has only the permissions it needs.
+
+### Also planned for the spring
+
+- Failure classification: decide whether a failure is the app or the
+  infrastructure before choosing a fix.
+- Pre-check: confirm it is safe to act.
+- Human-in-the-loop gate: ask for approval before high or critical fixes.
+- Remediation scripts for the medium to critical risk tiers.
