@@ -1,0 +1,71 @@
+# Locust with the web UI. For no-UI runs see k8s/jobs/.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust
+  namespace: stars
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locust
+  template:
+    metadata:
+      labels:
+        app: locust
+    spec:
+      containers:
+        - name: locust
+          image: locustio/locust:2.32.0   # pin a version you have checked
+          args:
+            - "-f"
+            - "/mnt/locust/locustfile.py"
+            - "--class-picker"
+            - "--host"
+            - "http://stars-app.stars.svc.cluster.local"
+          ports:
+            - containerPort: 8089
+          startupProbe:
+            httpGet:
+              path: /
+              port: 8089
+            periodSeconds: 2
+            failureThreshold: 30        # up to 60s to start
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8089
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          env:
+            # Optional: send run events and request logs to OpenObserve.
+            # Create the Secret first (see README). If it is missing, this is skipped.
+            - name: O2_URL
+              valueFrom:
+                secretKeyRef: { name: openobserve-credentials, key: url, optional: true }
+            - name: O2_USER
+              valueFrom:
+                secretKeyRef: { name: openobserve-credentials, key: user, optional: true }
+            - name: O2_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: openobserve-credentials, key: password, optional: true }
+          volumeMounts:
+            - name: locustfile
+              mountPath: /mnt/locust
+      volumes:
+        - name: locustfile
+          configMap:
+            name: locustfile
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust
+  namespace: stars
+spec:
+  selector:
+    app: locust
+  ports:
+    - port: 8089
+      targetPort: 8089

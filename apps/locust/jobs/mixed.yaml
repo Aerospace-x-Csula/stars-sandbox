@@ -1,0 +1,55 @@
+# Headless (no UI) run: mixed. Edit users (-u), ramp up (-r) and run time (-t) below.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: locust-mixed
+  namespace: stars
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: locust-job
+        scenario: mixed
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: locust
+          image: locustio/locust:2.32.0   # keep in sync with k8s/locust.yaml
+          args:
+            - "-f"
+            - "/mnt/locust/locustfile.py"
+            - "--headless"
+            - "--host"
+            - "http://stars-app.stars.svc.cluster.local"
+            - "--scenario"
+            - "mixed"
+            - "-u"
+            - "50"
+            - "-r"
+            - "5"
+            - "-t"
+            - "5m"
+            - "--exit-code-on-error"
+            - "0"
+            - "NormalUser"
+            - "HighTrafficUser"
+            - "FailingUser"
+          env:
+            - name: O2_URL
+              valueFrom:
+                secretKeyRef: { name: openobserve-credentials, key: url, optional: true }
+            - name: O2_USER
+              valueFrom:
+                secretKeyRef: { name: openobserve-credentials, key: user, optional: true }
+            - name: O2_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: openobserve-credentials, key: password, optional: true }
+          volumeMounts:
+            - name: locustfile
+              mountPath: /mnt/locust
+      volumes:
+        - name: locustfile
+          configMap:
+            name: locustfile
