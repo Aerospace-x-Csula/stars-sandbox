@@ -39,7 +39,17 @@ The script installs Homebrew and missing Git, Docker Desktop, Minikube, kubectl,
 
 The Mac script does not configure GitHub sign-in. If repository access requires authentication, set it up beforehand. Use this script for the first installation; use the commands below for later sessions.
 
-## Open OpenObserve
+## Linux (Ubuntu) setup
+
+On Ubuntu with systemd and sudo access, run from the repo root:
+
+```bash
+bash ./infrastructure/setup-ubuntu.sh
+```
+
+The script installs Git, Docker Engine, Helm, and K3s with kubectl, then deploys OpenObserve. Enter your OpenObserve credentials when prompted. Run the port-forward command it prints and open <http://localhost:5080>.
+
+## Open OpenObserve on Windows or macOS
 
 On Windows, run this after setup. On Mac, setup runs it automatically:
 
