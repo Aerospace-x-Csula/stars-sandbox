@@ -1,196 +1,83 @@
-# Applications
+# Apps (Data/Test Engineering)
 
-Managed by the Data/Test Engineering Team: **Eric Castellon (sub-lead)**, Jasmine Pineda, Jayden Darling & Mario Nunez
+This folder holds the Data/Test Engineering team's work for the STARS sandbox. Together, these folders **create** realistic telemetry and failures, **record** what the results should be, and **check** that everything reaches OpenObserve.
 
-## Purpose of the apps folder
+![Data/Test architecture](data-test-architecture-diagram.png)
 
-This folder contains sample applications that run in the Minikube cluster and generate logs/metrics used by the `stars` sandbox.
+---
 
-## Current Applications and Generators
+## What each folder does
 
-- `log-generator`
-- `error-generator`
+### [log-generator](log-generator/)
 
-## Components Overview
+A small app that writes log messages, including a "heartbeat" every 5 seconds that shows it is alive. On command, it fakes problems: a warning, an error, a burst of 20 errors, a connection failure, or a crash. It can also create automatic error bursts on its own (`AUTO_SPIKE=true`). Every problem is tagged with a `run_id`, so we know exactly which log lines it should produce. This is how we test that logs and failures show up correctly in OpenObserve.
 
-### log-generator:
+### [synthetic-metrics](synthetic-metrics/)
 
-- Kubernetes application that writes log lines to stdout (terminal) in the `stars` namespace. Is used for manual **WARN/ERROR/Connectivity/Crash** testing.
+A small app that reports fake CPU and memory usage every 5 seconds. Most of the time the numbers look healthy, but on a schedule it shows a CPU spike (every 5 minutes) or a slow memory leak (minutes 35–50 of each hour). The problems can be turned off with `ANOMALIES=off` to record purely normal data. This gives us the metrics signal for dashboards, and later gives the AI/ML team examples of normal and abnormal behavior.
 
-### error-generator:
+### [trace-generator](trace-generator/)
 
-- Kubernetes application that automatically creates spikes of **22 ERROR logs** then waits for 20 seconds then repeats, simulating through 5 different simulated error types. These spikes can be viewed in the **Stars Error Monitoring Dashboard** inside of OpenObserve.
+Creates fake traces: records of one request traveling through four pretend services (frontend, api, database and payment). It has three scenarios: `normal`, `slow-db` (the database is slow) and `payment-errors` (the payment service fails). This shows how a problem in one service affects the services around it. The Observability team uses it to test tracing in OpenObserve, and it sets up root-cause analysis later in the project.
 
-## Running and Deployment
+### [Locust](Locust/)
 
-### log-generator:
+Our traffic generator. It sends fake website visits to a test app (`stars-app`, running httpbin) so OpenObserve has real activity to monitor. It can act like normal users, a sudden crowd of users, users who hit errors and slow pages, or a mix of all three. Each run gets a `run_id`, so its results can be found later in OpenObserve. Unlike the other generators, a real app does real work here, which makes this the most realistic data we have.
 
-**Deploying log-generator:**
+### [failure-scenarios](failure-scenarios/)
 
-Before starting make sure to have Minikube and OpenObserve running then run:
+A written catalog of every problem our generators can create. For each one, it lists how to trigger it, the exact log lines that should appear, and how to tell whether it passed. Think of it as the answer key: it says what *should* happen. Our tests are built from it, and later phases will score the AI's problem detection against it.
 
-```
-minikube status
-kubectl get namespace stars
-```
+### [tests](tests/telemetry-validation/)
 
-to verify that Minikube is running and the `stars` namespace exists
+Automated tests that trigger problems and check the results on their own, with no one watching logs by hand. They prove what *does* happen: the log generator behaves as the catalog says, and logs, metrics and traces actually arrive in OpenObserve. The latest results are saved in [`test-results.xml`](tests/telemetry-validation/test-results.xml), our team's proof that everything works.
 
-From the root of the repository run:
+---
 
-```
-kubectl apply -f apps/log-generator/deployment.yaml
-kubectl -n stars rollout status deployment/log-generator --timeout=120s
-```
+## Telemetry at a glance
 
-Then wait for the rollout to succeed.
+| Generator | Sends | How it reaches OpenObserve | Where to find it in OpenObserve |
+|---|---|---|---|
+| log-generator | Logs | Container logs → collector Agent → Gateway | **Logs**, `default` stream: `k8s_container_name = 'log-generator'` |
+| synthetic-metrics | Metrics (CPU and memory, as log lines) | Container logs → collector Agent → Gateway | **Logs**, `default` stream: `k8s_container_name = 'synthetic-metrics'` |
+| trace-generator | Traces | OpenTelemetry (OTLP) straight to the collector Gateway, port 4318 | **Traces**, `default` stream: filter by `run_id` |
+| Locust | Web traffic and test results | Container logs through the collector; results sent straight to OpenObserve's API (when the credentials Secret is set) | **Logs**, `locust` stream (one row per request) and `locust_runs` (test start and stop) |
+| stars-app | Request logs (the app Locust tests) | Container logs → collector Agent → Gateway | **Logs**, `default` stream: `k8s_container_name = 'httpbin'` (the container's name inside `stars-app`) |
 
-### error-generator:
+All long-running apps have Kubernetes startup and readiness checks, and log these two lines so the Observability team can measure startup time:
 
-Make sure that Minikube, OpenObserve and the collector are runnning.
-If you forgot the setup for the collector or `log-generator` follow:
-
-- **collector:** [collector.md](../observability/collector.md)
-- **log-generator:** [README.md](log-generator/README.md)
-
-Start/Update both generators:
-
-```
-kubectl apply -f apps/log-generator/deployment.yaml
-kubectl apply -f apps/error-generator/deployment.yaml
+```text
+<UTC time> level=INFO service=<app name> event=startup message="Process started" run_id=<RUN_ID>
+<UTC time> level=INFO service=<app name> event=ready message="Ready to serve" run_id=<RUN_ID>
 ```
 
-Check the pods
+---
 
-```
-kubectl get pods -n stars
-```
+## Getting started
 
-Watch the automatic error spikes in the terminal:
+Everything runs in the `stars` namespace on Minikube. Commands work the same in macOS Terminal and Windows PowerShell unless a README shows both.
 
-```
-kubectl logs -n stars -l app=error-generator -f
-```
+1. **Set up the platform first** (once per cluster):
+   1. Minikube and the `stars` namespace: [`infrastructure/README.md`](../infrastructure/README.md)
+   2. OpenObserve: [`observability/install.md`](../observability/install.md)
+   3. The collector: [`observability/collector.md`](../observability/collector.md)
+2. **Start the generators** you need, using each folder's README. A good order:
+   1. [log-generator](log-generator/), the quickest check that logs reach OpenObserve
+   2. [synthetic-metrics](synthetic-metrics/)
+   3. [trace-generator](trace-generator/), a short run that stops by itself
+   4. [Locust](Locust/), which also deploys `stars-app`
+3. **Open OpenObserve** to see the data:
+   ```bash
+   kubectl port-forward -n stars svc/openobserve-openobserve-standalone 5080:5080
+   ```
+   Then go to <http://localhost:5080> and log in with the credentials from your `observability/values.local.yaml`.
+4. **Run the tests** to confirm everything works: [`tests/telemetry-validation/README.md`](tests/telemetry-validation/README.md).
+5. **Trigger a failure scenario** and compare the result with the [failure catalog](failure-scenarios/).
 
-## Component Verification
+---
 
-### log-generator:
+## Conventions
 
-To verify, list the pod and run:
-
-```
-kubectl get pods -n stars
-```
-
-The pod should have a name that starts with `log-generator` and should show Running under status and 1/1 under READY
-
-### error-generator:
-
-In a browser open:
-
-```
-http://localhost:5050
-```
-
-In the Open Observe homepage go to
-
-```
-Logs > default
-```
-
-To show logs from both `log-generator` & `error-generator` run the query:
-
-```
-(k8s_container_name = 'log-generator' OR k8s_container_name = 'error-generator')
-```
-
-To show **Error** logs from both run the query:
-
-```
-(k8s_container_name = 'log-generator' OR k8s_container_name = 'error-generator')
-AND body LIKE '%level=ERROR%'
-```
-
-## Component Telemetry
-
-### log-generator:
-
-- Writes continous log lines to stdout in the `stars` namespace
-- INFO heartbeat logs with an increasing count every 5 seconds
-- One **WARN** line, One **ERROR** line, one **Error spike** that writes 20 error lines numbered from 1-20
-- Connectivity Failure: One Error with `run_id=network=01`, `target=127.0.0.1:1`, and a nonzero `wget_exit`.
-- Crash ERROR with `exiting with code 42` and no completion marker. Kubernetes restarts the container and the RESTARTS count increases by one.
-
-### error-generator:
-
-- A spike of 20 **ERROR** logs, pausing for 20 seconds then repeat again.
-- Each spike rotates through 5 simulated error types:
-  - `authentication, database, connectivity, dependency & service`. Each 20-error spike contains about 4 of each type.
-- `error-generator` only creates **ERROR** logs, so **WARN** logs will come from `log-generator`
-
-## Existing Failure Scenarios
-
-### log-generator:
-
-- WARN: One WARN line
-- ERROR: one ERROR line
-- ERROR-SPIKE: 20 Error lines, numbered from 1-20
-- Connectivity: one ERROR with `run_id=network01`, `target=127.0.0.1:1`, and a nonzero `wget_exit`
-- Crash: exits with `code 42`, container restart
-
-### error-generator:
-
-5 simulated error types:
-
-```
-Authentication
-database
-connectivity
-dependency
-service
-```
-
-## Stopping or Removing Components
-
-### log-generator:
-
-In the terminal typing **CTRL C** stops following the logs without stopping the application.
-
-To delete the `log-generator` application, run:
-
-```
-kubectl delete -f apps/log-generator/deployment.yaml
-```
-
-### error-generator:
-
-To stop automatic spikes:
-
-```
-kubectl scale deployment error-generator -n stars --replicas=0
-```
-
-To remove `error-generator` run:
-
-```
-kubectl delete -f apps/error-generator/deployment.yaml
-```
-
-## Detailed Component installation:
-
-- `error-generator`: [README.md](error-generator/README.md)
-- `log-generator`: [README.md](log-generator/README.md)
-
-## Current Limitations/Work in progress
-
-### Current Limitations:
-
-### Work in Progress:
-
-- Application Traffic Generator
-- Failure Scenario Documentation
-- Automated Telemetry Validation
-- Synthetic Metrics Generator
-
-## Planned Functionality
-
+- Use a **new `run_id`** for each run, so one search finds the whole run (letters, digits, `_` and `-`; up to 64 characters).
+- Every README gives commands for both **Mac (Terminal)** and **Windows (PowerShell)** wherever they differ.
+- Never commit passwords. OpenObserve logins live in your local `*.local.yaml` files, environment variables, or the `openobserve-credentials` Kubernetes Secret.
