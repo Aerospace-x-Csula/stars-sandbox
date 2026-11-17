@@ -1,39 +1,45 @@
 # Common setup errors guide
 
-### Windows asks to restart during setup
+### The `stars` namespace does not exist
 
-**Symptom:** While the Windows setup script `infrastructure/setup-windows.ps1` is running, it asks you to restart Windows.
+**Symptom:**
 
-**Check:** Read the message in PowerShell to confirm it's asking you to restart Windows.
-
-**Fix:** Restart Windows, open **PowerShell as an Administrator** and run the same command again in the repo root:
+Running
 
 ```
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\infrastructure\setup-windows.ps1
+kubectl get namespaces
 ```
 
-**Related Documentation:**
+results in the `stars` namespace not being listed.
 
-- [README.MD](../../infrastructure/README.md)
-- [SETUP-MD](../../infrastructure/SETUP.md)
+**Check:**
 
-### OpenObserve pod enters `CrashLoopBackOff` when running `infrastructure/setup-windows.ps1`
+Run
 
-**Symptom:** During the first installation on Windows when running `infrastructure/setup-windows.ps1`, OpenObserve enters a `CrashLoopBackOff` because the password created in `observability/values.local.yaml` is too weak.
+```
+kubectl get namespaces
+```
 
-**Check:** Open `observability/values.local.yaml` and check the password. It must include **at least one uppercase letter, one number, and one punctuation character, and must not contain double quotes or backslashes.**
+Check that the `stars` namespace is not in the list.
 
 **Fix:**
-Edit the password in `observability/values.local.yaml` and save the file. Then rerun the setup script in **PowerShell as an Administrator** in the repo root:
+
+Create the `stars` namespace by running
 
 ```
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\infrastructure\setup-windows.ps1
+kubectl create namespace stars
+```
+
+To verify that the `stars` namespace exists run
+
+```
+kubectl get namespaces
 ```
 
 **Related Documentation:**
 
-- [README.MD](../../infrastructure/README.md)
-- [SETUP-MD](../../infrastructure/SETUP.md)
+- [README.md](../../observability/README.md)
+- [install.md](../../observability/install.md)
 
 ### `values.local.yaml` appears in `git status`
 
@@ -73,13 +79,14 @@ to confirm that `values.local.yaml` is not appearing as a file waiting to be com
 **Symptom:** When running `kubectl get pods -n stars -w` it shows the OpenObserve pod has entered a status of `CrashLoopBackOff`.
 
 **Check:**
+
 Run
 
 ```
-kubectl get pods -n stars
+kubectl get pods -n stars -w
 ```
 
-If the status is `CrashLoopBackOff`, look at the password in `values.local.yaml`. It needs to be changed to have at least one uppercase letter, one number and one punctuation mark.
+Check if the status is `CrashLoopBackOff`, look at the password in `values.local.yaml`. It needs to be changed to have at least one uppercase letter, one number and one punctuation mark.
 
 **Fix:**
 
@@ -148,3 +155,38 @@ Then open `http://localhost:5080` in your browser.
 
 - [README.md](../../observability/README.md)
 - [install.md](../../observability/install.md)
+
+### Windows asks to restart during setup
+
+**Symptom:** While the Windows setup script `infrastructure/setup-windows.ps1` is running, it asks you to restart Windows.
+
+**Check:** Read the message in PowerShell to confirm it's asking you to restart Windows.
+
+**Fix:** Restart Windows, open **PowerShell as an Administrator** and run the same command again in the repo root:
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\infrastructure\setup-windows.ps1
+```
+
+**Related Documentation:**
+
+- [README.MD](../../infrastructure/README.md)
+- [SETUP-MD](../../infrastructure/SETUP.md)
+
+### OpenObserve pod enters `CrashLoopBackOff` when running `infrastructure/setup-windows.ps1`
+
+**Symptom:** During the first installation on Windows when running `infrastructure/setup-windows.ps1`, OpenObserve enters a `CrashLoopBackOff` because the password created in `observability/values.local.yaml` is too weak.
+
+**Check:** Open `observability/values.local.yaml` and check the password. It must include **at least one uppercase letter, one number, and one punctuation character, and must not contain double quotes or backslashes.**
+
+**Fix:**
+Edit the password in `observability/values.local.yaml` and save the file. Then rerun the setup script in **PowerShell as an Administrator** in the repo root:
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\infrastructure\setup-windows.ps1
+```
+
+**Related Documentation:**
+
+- [README.MD](../../infrastructure/README.md)
+- [SETUP-MD](../../infrastructure/SETUP.md)
