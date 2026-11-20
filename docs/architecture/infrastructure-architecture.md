@@ -1,556 +1,538 @@
-# STARS Sandbox System Overview
+# STARS Sandbox Infrastructure Architecture
 
-> **Status:** Updated Draft - reflects the Fall 2026 implementation presented by the project team. Technical review by the relevant sub-leads is recommended before this document is treated as final.
+> **Status:** Updated Draft - reflects the Fall 2026 infrastructure demonstrated by the project team. Technical review by the Infrastructure Sub-Lead is recommended before final approval.
 >
-> **Scope:** The STARS student sandbox and its current development/test components. This document does **not** describe a production STARS deployment.
+> **Scope:** Development and testing infrastructure for the STARS student sandbox. This document does **not** describe a production STARS environment.
 
 ## Purpose
 
-The STARS sandbox is a development and testing environment for the **STARS AI-Powered Observability Platform**, a CSULA Senior Design project in collaboration with The Aerospace Corporation.
+This document explains how the current STARS sandbox infrastructure is organized and how the project's major development environments support the application, observability, AI, testing, and automation workstreams.
 
-The project is building a representative STARS-like environment that can:
+The project currently uses two main Kubernetes environments:
 
-1. generate realistic application activity and failure conditions,
-2. collect logs, metrics, and traces,
-3. send telemetry to OpenObserve,
-4. detect abnormal behavior,
-5. support investigation and root-cause analysis, and
-6. safely remediate approved problems.
+1. **Local Minikube environments** for individual development and testing.
+2. **A private multi-node K3s VM environment** for shared/multi-node infrastructure testing.
 
-The long-term project flow is:
+Cloud deployment is a later project goal.
+
+For setup instructions, use the [local setup guide](../onboarding/local-setup.md), [`infrastructure/README.md`](../../infrastructure/README.md), and [`infrastructure/SETUP.md`](../../infrastructure/SETUP.md).
+
+---
+
+## Environment Overview
 
 ```text
-Observe -> Detect -> Explain -> Heal
+                     STARS Development Environments
+                                |
+                 +--------------+--------------+
+                 |                             |
+                 v                             v
+       Local Developer Sandbox         Multi-Node Test Environment
+                 |                             |
+        Docker + Minikube             Private School VM Network
+                 |                             |
+        Kubernetes cluster                  K3s
+                 |                             |
+        namespace: stars             stars1 - control plane
+                 |                   stars2 - worker
+                 |                   stars3 - worker
+                 |                   stars4 - worker
+                 |
+       Project workloads
 ```
 
-The sandbox is intentionally isolated from production STARS infrastructure.
+The two environments serve different purposes.
+
+- **Minikube** provides a lightweight environment that each student can run locally.
+- **K3s on school/private VMs** provides a more representative multi-node Kubernetes environment for integration and scaling work.
 
 ---
 
-## Current Project Status
+## 1. Local Developer Environment
 
-The Fall 2026 work focused primarily on the sandbox foundation, baseline observability, and the readiness gate.
+The local sandbox is the primary individual development environment.
 
-The project now has working components across Infrastructure, Data/Test Engineering, Observability, AI/ML, and Automation & Self-Healing.
+The repository supports development across the operating systems used by the team and contains platform-specific infrastructure setup scripts.
 
-Some Phase 3 and Phase 4 concepts have already been prototyped, including anomaly detection, forecasting, alert grouping, log-pattern detection, and low-risk automated remediation.
-
-However, the full AI monitoring, root-cause-analysis, and self-healing architecture is **not yet complete**.
-
-The planned Spring 2027 work continues with:
-
-- AI monitoring,
-- root-cause analysis,
-- expanded self-healing,
-- advanced features,
-- hardening, and
-- final system integration and demonstration.
-
----
-
-## High-Level Architecture
+Relevant files include:
 
 ```text
-                       STARS Sandbox
-                            |
-                            v
-+---------------------------------------------------------+
-|                   Infrastructure                        |
-|                                                         |
-|  Developer laptops: Docker + Minikube                  |
-|  Multi-node testing: private K3s VM environment        |
-+---------------------------+-----------------------------+
-                            |
-                            v
-+---------------------------------------------------------+
-|             Data / Test Engineering                     |
-|                                                         |
-|  Log Generator                                          |
-|  Synthetic Metrics                                      |
-|  Trace Generator                                        |
-|  Locust Traffic                                         |
-|  Failure Scenarios                                      |
-|  Telemetry Validation Tests                             |
-+---------------------------+-----------------------------+
-                            |
-                   logs / metrics / traces
-                            |
-                            v
-+---------------------------------------------------------+
-|                    Observability                        |
-|                                                         |
-|  OpenTelemetry Collector                                |
-|  OpenObserve                                            |
-|  Dashboards                                             |
-|  Telemetry Search / Validation                          |
-+---------------------------+-----------------------------+
-                            |
-                            v
-+---------------------------------------------------------+
-|                       AI / ML                           |
-|                                                         |
-|  Anomaly Detection                                      |
-|  Resource Forecasting                                   |
-|  Alert Grouping                                         |
-|  Log-Pattern Detection                                  |
-|  Root-Cause Analysis - planned / future integration     |
-+---------------------------+-----------------------------+
-                            |
-                            v
-+---------------------------------------------------------+
-|             Automation & Self-Healing                   |
-|                                                         |
-|  Local Healer - low-risk prototype                      |
-|  Circuit-breaker guardrail                              |
-|  Audit entries                                          |
-|  Higher-risk remediation - future work                  |
-+---------------------------+-----------------------------+
-                            |
-                            |
-                  Remediates approved faults
-                            |
-                            +---------> Applications
+infrastructure/
+├── README.md
+├── SETUP.md
+├── macsetup.sh
+├── setup-ubuntu.sh
+└── setup-windows.ps1
 ```
 
-The diagram represents the major current project components and intended information flow. It does **not** imply that every AI component is already integrated directly with the automation system.
+The local environment uses:
 
----
-
-## 1. Infrastructure
-
-The Infrastructure workstream provides the Kubernetes environments used to develop and test the sandbox.
-
-### Local Developer Environment
-
-The primary developer environment uses:
-
-- Docker,
+- Git,
+- Docker / Docker Desktop,
 - Minikube,
 - Kubernetes,
 - `kubectl`,
 - Helm, and
-- the `stars` Kubernetes namespace.
+- OpenObserve.
 
-Students use local Minikube clusters on their laptops for development and testing.
-
-Repository setup scripts support multiple operating systems.
-
-### Multi-Node K3s Testing Environment
-
-The Infrastructure team has also established a private VM-based environment for multi-node Kubernetes testing.
-
-The current documented topology is:
+The project's Kubernetes resources primarily use the namespace:
 
 ```text
-STARS Team
-    |
-    | SSH / kubectl / Helm
-    v
-Private VM Network
-    |
-    +-- stars1 - K3s control plane
-    |
-    +-- stars2 - K3s worker
-    |
-    +-- stars3 - K3s worker
-    |
-    `-- stars4 - K3s worker
+stars
 ```
-
-The local Minikube environment remains useful for individual development, while the K3s environment supports testing a more representative multi-node architecture.
-
-Cloud deployment remains future work.
-
-For more detail, see [Infrastructure Architecture](infrastructure-architecture.md).
 
 ---
 
-## 2. Data / Test Engineering
+## 2. Local Minikube Architecture
 
-The Data/Test Engineering workstream provides repeatable workloads, telemetry generators, failure scenarios, and automated validation.
+A developer laptop runs the sandbox through Docker and Minikube.
+
+```text
+Developer Laptop
+|
++-- Git / stars-sandbox repository
+|
++-- Docker
+|    |
+|    `-- Minikube
+|         |
+|         `-- Kubernetes cluster
+|              |
+|              +-- namespace: stars
+|              |    |
+|              |    +-- Data/Test workloads
+|              |    +-- OpenObserve
+|              |    `-- other project resources
+|              |
+|              `-- OpenTelemetry Collector resources
+|
++-- kubectl
+|
+`-- Helm
+```
+
+This environment allows a student to develop, deploy, observe, and test project components without accessing a production STARS environment.
+
+---
+
+## 3. Current Local Workloads
+
+The current development architecture includes several workloads used to generate and validate telemetry.
+
+### Data/Test Workloads
 
 Current repository components include:
 
-### Log Generator
+| Component | Kubernetes form / purpose |
+| --- | --- |
+| **Log Generator** | Deployment that produces heartbeat, warning, error, and failure-scenario logs. |
+| **Synthetic Metrics** | Deployment that produces CPU and memory telemetry, including controlled anomalies. |
+| **Trace Generator** | Job that produces OpenTelemetry traces for simulated distributed requests. |
+| **Locust** | Deployment/jobs used to generate repeatable application traffic and load scenarios. |
+| **STARS Test App** | Application target used by Locust traffic generation. |
+| **Telemetry Tests** | pytest-based validation executed from the development environment. |
 
-The log generator produces application activity such as:
-
-- heartbeat logs,
-- warnings,
-- simulated errors,
-- error spikes,
-- connectivity failures, and
-- crash scenarios.
-
-Runs can be associated with a `run_id` so generated events can be correlated with tests.
-
-### Synthetic Metrics
-
-The synthetic-metrics component produces CPU and memory telemetry.
-
-It can generate:
-
-- normal baseline data,
-- scheduled CPU spikes, and
-- memory-leak behavior.
-
-The normal-data mode provides baseline information that can be used by AI/ML experiments.
-
-### Trace Generator
-
-The trace generator creates OpenTelemetry traces for a simulated distributed application.
-
-A trace may represent activity across example services such as:
-
-```text
-frontend -> api -> db -> payment
-```
-
-Supported test scenarios include normal operation, slow database behavior, and payment errors.
-
-### Locust Traffic
-
-Locust generates repeatable application traffic and stress scenarios.
-
-This provides realistic workload activity and contributes data that can be used by the observability and AI portions of the project.
-
-### Failure Scenarios and Automated Validation
-
-The project maintains a failure-scenario catalog covering telemetry such as:
-
-- logs,
-- metrics,
-- traces,
-- Locust traffic, and
-- injected spikes.
-
-Automated pytest-based tests validate expected behavior and preserve test results for later review.
+The exact running resource set depends on which components a developer has deployed.
 
 ---
 
-## 3. Telemetry Flow
+## 4. Telemetry Collection Architecture
 
-The current local sandbox contains an end-to-end telemetry path from generated workloads into OpenObserve.
+The local sandbox uses an OpenTelemetry collector to move supported telemetry toward OpenObserve.
 
-A simplified view is:
-
-```text
-Data/Test Workloads
-        |
-        | logs / metrics / traces
-        v
-OpenTelemetry Collector
-        |
-        v
-OpenObserve
-        |
-        +--> Search
-        |
-        +--> Dashboards
-        |
-        `--> Data used for AI/ML experiments
-```
-
-A more detailed local architecture includes:
+A simplified architecture is:
 
 ```text
-trace-generator
+Trace Generator
       |
       | OTLP traces
       v
-OpenTelemetry Collector Gateway
-      |
-      v
-OpenObserve
-
-
-log-generator --------\
-synthetic-metrics -----+--> Collector / container logs --> OpenObserve
-stars-app -------------/
-
-
-Locust
-   |
-   +--> application traffic
-   |
-   `--> Locust result streams where configured
++---------------------------+
+| OpenTelemetry Collector   |
+|                           |
+| Gateway                   |
+| Agent                     |
++-------------+-------------+
+              |
+              v
+         OpenObserve
 ```
 
-The project has performed end-to-end validation showing generated logs being collected, ingested into OpenObserve, searched, and displayed through dashboards.
+Container-generated logs from project applications can be read by the collector and forwarded toward the collector gateway/OpenObserve path.
+
+The trace generator sends OTLP trace data through the collector gateway.
+
+Locust also generates traffic against the test application and can provide result data for observability/testing workflows.
 
 ---
 
-## 4. Observability
+## 5. OpenObserve
 
-OpenObserve is the central observability platform used by the sandbox.
+OpenObserve is the central observability backend for the sandbox.
 
-The Observability workstream has implemented documentation and configuration for:
+It is deployed into Kubernetes using Helm.
 
-- OpenObserve deployment using Kubernetes and Helm,
-- OpenTelemetry collector deployment/configuration,
-- telemetry forwarding,
-- OpenObserve installation,
-- enterprise deployment/migration guidance, and
-- dashboards.
+The local development environment exposes the OpenObserve web interface through port forwarding.
 
-### OpenObserve
-
-The local environment exposes OpenObserve through the Kubernetes environment.
-
-The standard local interface is available through port forwarding at:
+The standard local access endpoint is:
 
 ```text
 http://localhost:5080
 ```
 
-### Collector
+A typical port-forward command is:
 
-The OpenTelemetry collector receives telemetry from sandbox workloads and forwards supported telemetry into OpenObserve.
-
-### Dashboards
-
-Current dashboard work includes monitoring application logs and errors.
-
-The error-monitoring dashboard can display information such as:
-
-- total errors,
-- warnings,
-- connectivity failures,
-- crashes, and
-- error categories.
-
-Dashboards provide human-readable operational visibility before more advanced AI-assisted monitoring is added.
-
----
-
-## 5. AI / ML
-
-The AI/ML workstream has moved beyond planning and now contains several working experiments and prototypes.
-
-### Anomaly Detection
-
-The anomaly-detection work uses normal CPU data from the synthetic-metrics generator to establish an expected range.
-
-CPU spikes outside the learned range can then be flagged as anomalies.
-
-In the Fall 2026 demonstration dataset, the anomaly-detection experiment detected all 23 injected CPU spikes with no false alarms in that specific test.
-
-This result should be treated as an experiment result, not as a general production-performance guarantee.
-
-### Resource Forecasting
-
-A Python-based resource-exhaustion forecasting prototype has been developed to explore predicting resource problems before they occur.
-
-### Alert Grouping
-
-Alert-grouping work explores combining related alerts into a single incident using shared dimensions such as namespace or service.
-
-The purpose is to reduce duplicate notifications and alert fatigue.
-
-### Log-Pattern Detection
-
-The team has also evaluated log-pattern behavior and SQL-based rules for detecting new warning/error activity that may not appear in a baseline pattern view.
-
-### Root-Cause Analysis
-
-Full root-cause analysis remains a future integration area.
-
-The longer-term goal is to correlate telemetry and other evidence to identify likely causes of incidents rather than treating individual alerts independently.
-
----
-
-## 6. Automation & Self-Healing
-
-The Automation & Self-Healing workstream has implemented an initial **low-risk remediation prototype** called the local healer.
-
-Higher-risk remediation remains future work.
-
-### Local Healer
-
-The local healer operates only on eligible Kubernetes workloads.
-
-Current safeguards include:
-
-- the workload must be controller-managed,
-- it must be explicitly labeled `auto-heal=true`,
-- the healer detects unhealthy/crash-looping behavior,
-- a circuit breaker limits repeated healing attempts, and
-- heal/block decisions produce audit output.
-
-The current demonstrated remediation approach deletes an unhealthy eligible Pod so its Kubernetes controller can recreate it.
-
-### Current Guardrail
-
-The demonstrated circuit-breaker behavior allows a maximum of:
-
-```text
-3 heals per application within a 30-minute window
+```bash
+kubectl --namespace stars port-forward svc/openobserve-openobserve-standalone 5080:5080
 ```
 
-After the threshold is reached, automated healing stops.
+While the command is running, the browser can access OpenObserve on the local workstation.
 
-A period of healthy operation resets the limit.
-
-### Future Automation Work
-
-The current local healer is intentionally limited to low-risk actions.
-
-Future work includes:
-
-- fuller pre-action checks,
-- post-action validation,
-- human-in-the-loop approval,
-- integration of audit information with OpenObserve,
-- medium-risk remediation,
-- high-risk remediation,
-- critical-risk handling, and
-- expanded rollback/escalation behavior.
-
-Medium- through critical-risk remediation has been researched but is not currently implemented as complete automated functionality.
+OpenObserve is not publicly exposed simply because it is reachable through `localhost`.
 
 ---
 
-## 7. Current Integration State
+## 6. Current Telemetry and Observability Flow
 
-The major project components now exist, but the project should not yet be described as a fully integrated autonomous self-healing platform.
+The current local architecture can be represented as:
 
-### Working or Demonstrated
+```text
++-------------------------+
+| Data/Test Workloads     |
+|                         |
+| log-generator           |
+| synthetic-metrics       |
+| trace-generator         |
+| Locust                  |
+| stars-app               |
++------------+------------+
+             |
+             | logs / traces / workload activity
+             v
++-------------------------+
+| OpenTelemetry Collector |
+|                         |
+| Agent + Gateway         |
++------------+------------+
+             |
+             v
++-------------------------+
+| OpenObserve             |
+|                         |
+| Logs                    |
+| Traces                  |
+| Kubernetes events       |
+| Locust result streams   |
+| Dashboards              |
++------------+------------+
+             |
+             v
++-------------------------+
+| Browser / Team          |
+|                         |
+| Search                  |
+| Dashboards              |
+| Validation              |
++-------------------------+
+```
 
-Current work includes:
+Automated telemetry tests are used to verify that expected data reaches the observability platform.
 
-- local Kubernetes development environments,
-- a multi-node K3s testing environment,
-- log generation,
-- synthetic metrics,
-- trace generation,
-- traffic generation,
-- failure scenarios,
-- automated telemetry tests,
-- OpenTelemetry collection,
-- OpenObserve ingestion,
-- OpenObserve dashboards,
-- anomaly-detection experiments,
-- forecasting experiments,
-- alert-grouping work,
-- log-pattern detection, and
-- low-risk local healing with guardrails.
-
-### Still Incomplete / Future Integration
-
-The following remain future or incomplete work:
-
-- full production-like environment scaling,
-- cloud deployment,
-- complete AI monitoring integration,
-- evidence-based root-cause-analysis workflow,
-- closed-loop AI-to-remediation integration,
-- medium/high/critical remediation actions,
-- complete human-approval workflow,
-- complete post-remediation validation and rollback,
-- final production-evaluation packaging, and
-- final hardening.
+The project has demonstrated generated logs being collected, ingested into OpenObserve, searched, and monitored through dashboards.
 
 ---
 
-## 8. Repository Areas
+## 7. Multi-Node K3s Testing Environment
 
-| Directory | Responsibility |
+In addition to the local Minikube environment, the Infrastructure team has established a private VM-based multi-node K3s testing environment.
+
+The documented topology is:
+
+```text
+                     STARS Team
+                         |
+                  SSH / kubectl / Helm
+                         |
+                         v
+             Private School VM Network
+                         |
+                         v
+                 K3s Cluster
+                         |
+              +----------+----------+
+              |          |          |
+              |          |          |
+           stars2     stars3     stars4
+           worker     worker     worker
+              \          |          /
+               \         |         /
+                    stars1
+                control plane
+```
+
+More simply:
+
+| Node | Role |
 | --- | --- |
-| [`infrastructure/`](../../infrastructure/README.md) | Local and VM-based Kubernetes environment setup and infrastructure configuration. |
-| [`apps/`](../../apps/README.md) | Sample applications, telemetry generators, traffic generation, failure scenarios, and telemetry tests. |
-| [`observability/`](../../observability/README.md) | OpenObserve, collectors, dashboards, and observability configuration. |
-| [`ai/`](../../ai/README.md) | Anomaly detection, forecasting, alert grouping, and related AI/ML experiments. |
-| [`automation/`](../../automation/README.md) | Local healing and future remediation/self-healing work. |
-| [`docs/`](../README.md) | Cross-system architecture, onboarding, runbooks, project documentation, and release guidance. |
+| `stars1` | K3s control plane |
+| `stars2` | K3s worker |
+| `stars3` | K3s worker |
+| `stars4` | K3s worker |
 
-Component-specific instructions should remain close to their implementation. Cross-system documentation belongs under `docs/`.
+The environment exists to provide a multi-node test platform beyond a single developer laptop.
 
----
+The presentation describes the team accessing the environment through SSH and then using Kubernetes tooling such as `kubectl` or Helm.
 
-## 9. Current and Future Development Flow
+### Important Scope Note
 
-The project can be summarized as:
+The existence of the K3s cluster does **not** mean that every workload currently running in Minikube has been fully validated on the multi-node K3s environment.
 
-```text
-Generate
-   |
-   v
-Observe
-   |
-   v
-Detect
-   |
-   v
-Explain
-   |
-   v
-Heal
-```
-
-### Fall 2026
-
-Primary emphasis:
-
-```text
-Sandbox Foundation
-        +
-Baseline Observability
-        +
-Readiness Validation
-```
-
-The team also produced early AI/ML and low-risk remediation prototypes.
-
-### Spring 2027
-
-Planned emphasis:
-
-```text
-AI Monitoring
-        |
-        v
-Root-Cause Analysis
-        |
-        v
-Expanded Self-Healing
-        |
-        v
-Advanced Features
-        |
-        v
-Hardening + Final Demo
-```
+Deployment parity between local Minikube and the K3s environment should be documented as each component is tested there.
 
 ---
 
-## 10. Important Boundaries
+## 8. Linux / VM Setup Automation
 
-The STARS sandbox is a development and testing environment.
+The Infrastructure workstream has developed a streamlined Linux setup process for the VM environment.
 
-It should **not** be interpreted as:
+The Fall 2026 project presentation reports that this setup handles tasks including:
 
-- a production STARS deployment,
-- permission for unsupervised production changes,
-- a production-ready autonomous remediation platform, or
-- proof that experimental AI results generalize beyond the test datasets used.
+- user credential setup for Git and OpenObserve,
+- Git installation,
+- Helm installation,
+- K3s-related setup,
+- OpenObserve setup, and
+- Docker installation.
 
-Higher-risk actions must remain controlled and should require the safeguards and approval process defined by the project as those capabilities are implemented.
+The repository contains:
+
+```text
+infrastructure/setup-ubuntu.sh
+```
+
+Detailed behavior should remain documented in the Infrastructure team's setup documentation rather than duplicated here.
+
+---
+
+## 9. Networking and Service Access
+
+### Local Minikube
+
+Local development primarily relies on Kubernetes networking plus local port forwarding.
+
+OpenObserve:
+
+```text
+localhost:5080
+```
+
+Locust may expose its local user interface separately when deployed.
+
+Internal Kubernetes Services allow workloads to communicate inside the cluster.
+
+### K3s VM Environment
+
+The multi-node environment operates on a private VM network.
+
+The team accesses the environment through the approved VM access path and then manages Kubernetes using normal K3s/Kubernetes tools.
+
+This document does not assume that K3s services are publicly exposed.
+
+---
+
+## 10. Namespace Organization
+
+The main STARS sandbox namespace is:
+
+```text
+stars
+```
+
+It contains many of the project's application and observability workloads.
+
+The Data/Test architecture also uses collector resources associated with an OpenTelemetry collector deployment.
+
+Namespace placement should continue to be documented in the component-specific deployment files and guides because it may evolve as the environment is hardened.
+
+---
+
+## 11. Storage and Configuration
+
+Project-local configuration includes Git-ignored credentials and values files where appropriate.
+
+For example:
+
+```text
+observability/values.local.yaml
+```
+
+must remain local and must not be committed to Git.
+
+This document does **not** currently define a guaranteed persistence, backup, or disaster-recovery architecture for OpenObserve.
+
+Before documenting storage as production-like, the team should confirm:
+
+- active Kubernetes volumes,
+- StorageClasses,
+- OpenObserve persistence configuration,
+- retention behavior,
+- backup procedures, and
+- recovery behavior.
+
+---
+
+## 12. Infrastructure Dependencies
+
+The current local environment has the following major dependency chain:
+
+```text
+Developer workstation
+        |
+        v
+Docker
+        |
+        v
+Minikube
+        |
+        v
+Kubernetes
+        |
+        +--> Data/Test workloads
+        |
+        +--> OpenTelemetry Collector
+        |
+        `--> OpenObserve
+```
+
+The observability pipeline additionally depends on:
+
+```text
+Telemetry-producing workload
+        |
+        v
+Collector / ingestion path
+        |
+        v
+OpenObserve
+        |
+        v
+Search / dashboard / validation
+```
+
+AI/ML experiments depend on telemetry or datasets produced by the sandbox.
+
+The low-risk automation prototype depends on Kubernetes workload state but should be considered a separate controlled remediation component rather than a general cluster administrator.
+
+---
+
+## 13. Current Infrastructure State
+
+### Implemented / Demonstrated
+
+Current infrastructure work includes:
+
+- local Minikube setup,
+- Windows/macOS/local development support,
+- Linux VM setup automation,
+- Kubernetes namespace setup,
+- OpenObserve deployment,
+- Helm-based deployment workflows,
+- private multi-node K3s testing environment,
+- sample application workloads,
+- telemetry-generating workloads,
+- OpenTelemetry collection,
+- OpenObserve ingestion, and
+- local end-to-end validation.
+
+### Still In Progress or Future
+
+The following should not yet be described as completed production infrastructure:
+
+- complete workload parity between Minikube and K3s,
+- cloud deployment,
+- production-grade high availability,
+- final persistent-storage architecture,
+- formal backup/recovery implementation,
+- production networking,
+- complete security hardening,
+- final release deployment architecture, and
+- production STARS integration.
+
+---
+
+## 14. Environment Roadmap
+
+The current environment progression is:
+
+```text
+Individual Development
+Minikube on developer laptops
+        |
+        v
+Multi-Node Integration Testing
+School/private VMs using K3s
+        |
+        v
+Future Environment
+Cloud / broader deployment evaluation
+```
+
+This progression allows the team to develop features locally before validating them in a more representative multi-node environment.
+
+---
+
+## 15. Relationship to Other Workstreams
+
+Infrastructure provides the execution environment for the rest of the project.
+
+```text
+Infrastructure
+     |
+     +--> Data/Test workloads
+     |
+     +--> Observability
+     |
+     +--> AI/ML experiments
+     |
+     `--> Automation & Self-Healing
+```
+
+The infrastructure architecture therefore supports, but does not itself define, the internal design of those workstreams.
+
+Detailed component behavior belongs in each component's own documentation.
+
+---
+
+## Current Limitations and Items to Confirm
+
+Before marking this architecture document final, the Infrastructure Sub-Lead should confirm:
+
+- the current supported operating systems for local setup,
+- whether all four K3s VM nodes remain part of the active test environment,
+- which project workloads have been validated on the K3s cluster,
+- whether local and K3s deployment procedures are intended to remain equivalent,
+- the current storage/persistence configuration,
+- backup and recovery expectations,
+- any additional networking or service-access configuration,
+- current resource sizing for the VM environment, and
+- whether any infrastructure changes have occurred since the Fall 2026 presentation.
+
+These confirmations are especially important for the preliminary Software Design Document.
 
 ---
 
 ## Related Documentation
 
-- [Infrastructure Architecture](infrastructure-architecture.md) - current infrastructure environments and topology.
-- [Local Setup Guide](../onboarding/local-setup.md) - developer environment setup.
-- [Common Setup Errors](../onboarding/common-setup-errors.md) - common local setup problems.
-- [Infrastructure README](../../infrastructure/README.md) - infrastructure implementation guidance.
-- [Applications README](../../apps/README.md) - workloads, generators, and testing.
-- [Observability README](../../observability/README.md) - observability implementation.
-- [AI README](../../ai/README.md) - AI/ML implementation and experiments.
-- [Automation README](../../automation/README.md) - self-healing implementation.
-- [Runbooks](../runbooks/README.md) - operational runbook guidance.
-- [Release Checklist](../release/release-checklist.md) - release-readiness checklist.
+- [System Overview](system-overview.md) - high-level architecture and project-component relationships.
+- [Local Setup Guide](../onboarding/local-setup.md) - local developer onboarding.
+- [Common Setup Errors](../onboarding/common-setup-errors.md) - known local setup problems.
+- [Infrastructure README](../../infrastructure/README.md) - infrastructure workstream guidance.
+- [Infrastructure Setup](../../infrastructure/SETUP.md) - setup instructions and scripts.
+- [Applications README](../../apps/README.md) - sample applications and telemetry generation.
+- [Observability README](../../observability/README.md) - OpenObserve and collector documentation.
+- [AI README](../../ai/README.md) - AI/ML prototypes and experiments.
+- [Automation README](../../automation/README.md) - remediation and local-healer documentation.
 
 ---
 
-**Review status:** Updated by Documentation & Release using the current repository structure and Fall 2026 project presentation. Relevant technical sub-leads should confirm their sections before this document is marked final.
+**Review status:** Updated by Documentation & Release using the current repository structure and Fall 2026 project presentation. Infrastructure Sub-Lead technical confirmation is recommended before this document is marked final.
